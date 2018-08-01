@@ -1,0 +1,58 @@
+---
+title: "Descr_BPD_memo"
+output: html_document
+---
+
+
+```{r get_functions, eval=T, echo=F}
+source("functions_bpd_memo2.R")
+source("not_approved_screening_sessions.R")
+
+# load packages
+packages <- c("ggplot2", "tidyverse", "lubridate", "data.table")
+load_my_packages(packages)
+```
+
+```{r get_data, eval=T, echo=F}
+data_clean <- read.csv2("./Data/dataBPD_clean.csv")
+data_time_clean <- read.csv2("./Data/dataBPD_clean_time.csv")
+
+data_clean$gender.sc <- as.factor(data_clean$gender.sc) 
+data_clean$gender.t1 <- as.factor(data_clean$gender.t1) 
+
+levels(data_clean[, c("gender.sc", "gender.t1")]) <- c("1"="female", "2"="male", "3"="other", "4"="I don't want to tell")
+
+
+```
+
+```{r descr_demogr, eval=T, echo=T}
+table_descr_demogr <- list(
+  "N @entry" = length(data_clean$session),
+  "N @screened" = sum(!is.na(data_clean$bpd_s1.sc)),
+  "age mean"=mean(data_clean$age.sc, na.rm=T), 
+  "age SD" = sd(data_clean$age.sc, na.rm=T),
+  "gender"=table(data_clean$gender.sc))
+
+
+
+
+```
+
+```{r}
+save for later:
+  Stats <- function(x){
+      Mean <- mean(x, na.rm=TRUE)
+      SD <- sd(x, na.rm=TRUE)
+      Min <- min(x, na.rm=TRUE)
+      Max <- max(x, na.rm=TRUE)
+      return(c(Mean=Mean, SD=SD, Min=Min, Max=Max))
+    }
+
+    cbind(DF, t(apply(newDF,1, Stats))) # Where newDF is define as above
+  
+  
+  
+```
+
+
+

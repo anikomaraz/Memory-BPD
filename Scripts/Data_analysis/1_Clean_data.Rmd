@@ -1,0 +1,177 @@
+---
+title: "Data_cleaning_MemoryBPD"
+output: html_document
+---
+
+```{r setup_finetune, include=T, echo=FALSE}
+#setwd("~/Google Drive/_BPD_memory_Humboldt/Data_analysis")
+
+# call helper file
+source("functions_bpd_memo2.R")
+source("not_approved_screening_sessions.R")
+
+# load packages
+packages <- c("ggplot2", "tidyverse", "lubridate", "data.table")
+load_my_packages(packages)
+
+# user-defined options
+overwrite_data = TRUE  # if TRUE, then the final data will be saved (overwritten)
+```
+
+
+-------------------------------------------
+#Formatting data
+-------------------------------------------
+
+
+```{r get_clean_data, eval=TRUE, echo=FALSE}
+get_bpdMemo_raw_data(my_version="180726") # results in data_raw AND  data_t1time
+get_bpdMemo_raw_data_mturk(my_version="180727") # returns data_raw_mturk AND  data_t1time_mturk
+
+
+# merge facebook and mturk data
+#data_raw_full <- bind_rows(data_raw, data_raw_mturk)
+
+## for security reasons I will remove all variables based on which participants could potentially be identified
+anonymize_data()  #returns data_raw
+
+```
+
+```{r remove_data1, eval=T, echo=F}
+## remove duplicate rows (and keep only the first "attempt" to fill out the survey):
+length(data_raw$session) - length(unique(data_raw$session)) # returns the number of duplicates
+data_clean <- data_raw[!duplicated(data_raw$session), ]
+N1_raw <- length(data_clean$session)
+
+## get rid of test and empty sessions 
+data_clean <- data_clean[!data_clean$session %in% remove_test_sessions,]
+data_t1time$session <- lapply(data_t1time$session, as.character) %>% unlist()
+data_time <- data_t1time[!(data_t1time$session %in% remove_test_sessions), ]
+data_time <- data_time[lengths(data_time$session) > 0L,]
+N2_notest <- length(data_clean$session)
+
+## remove those who did not fill out the screening
+data_clean <- data_clean[!is.na(data_clean$bpd_s1.sc),]
+N3_noblankscreening <- length(data_clean$session)
+
+## get rid of those those who did not pass the screening attention check (screening for MTurk only)
+data_clean <- data_clean[!data_clean$session %in% remove_screen_failed,] 
+data_time <- data_time[!(data_time$session %in% remove_screen_failed), ]
+N4_nofailtest <- length(data_clean$session)
+
+## participants who screened positive
+bpd_items <- c("bpd_s1.sc", "bpd_s2.sc", "bpd_s3.sc", "bpd_s4.sc", "bpd_s5.sc", 
+               "bpd_s6.sc", "bpd_s7.sc", "bpd_s8.sc", "bpd_s9.sc", "bpd_s10.sc")
+data_clean$screen_bpd <- rowSums(data_clean[, bpd_items]) 
+data_clean$screen_bpd_posNeg <- data_clean$screen_bpd > 15
+data_clean$screen_positive <- ifelse(data_clean$screen_bpd_posNeg & 
+                                       data_clean$age.sc != "under_18" &  
+                                       data_clean$age.sc < 65 &  
+                                       data_clean$residence.sc == "United_States", T, F) #&  
+                                        #screen_attention_check == "2"))   # EZT VISSZA KELL ÁLLÍTANI, MIKOR BENNE VAN AZ MTURK DATA!!!!
+N5_screenpostive <- sum(data_clean$screen_positive)
+
+## filter those who have full data (t1-t4)
+data_clean$session_full <- !is.na(data_clean[,"panas_1.t4"])
+N6_sessionfull <- sum(data_clean$session_full)
+
+## sample N accross data cleaning
+sample_N <- list(
+  "all data:" = N1_raw, 
+  "test sessions excluded, no. of people clicking on the website:" = N2_notest, 
+   "participants who were screened:" = N3_noblankscreening, 
+  "participants who passed the screening attention check (screening for MTurk only):" = N4_nofailtest, 
+   "participants screened positive" = N5_screenpostive,
+  "participants who have full data (t1-t4)" = N6_sessionfull)
+
+sample_N
+
+```
+
+
+
+
+```{r att_check_calculate, eval=TRUE, echo=FALSE}
+# ATTENTION CHECK 
+
+# errors on the classic attention check items
+data_clean$att_check_item_errors_t1 <- calculate_att_check_item_errors_t1(data=data_clean, "att_check1.t1", "att_check2.t1")
+
+data_clean$att_check_item_errors_t1_t4 <- calculate_att_check_item_errors_t1_t4(data=data_clean, 
+                                                                          var1 = "att_check1.t1", var2 = "att_check2.t1",
+                                                                          var3 = "att_check1.t2", var4 = "att_check2.t2",
+                                                                          var5 = "att_check1.t3", var6 = "att_check2.t3", 
+                                                                          var7 = "att_check1.t4", var8 = "att_check2.t4", 
+                                                                          var9 = "att_check3.t4")
+# errors on video-content-related attention check items
+data_clean$att_check_video_errors <- calculate_att_check_video_errors(
+  data=data_clean, vars=c( "att_check_videoGr1.t1", "att_check_videoGr2.t1", "att_check_videoGr3.t1", "att_check_videoGr4.t1", 
+                           "att_check_videoGr5.t1", "att_check_videoGr6.t1", "att_check_videoGr7.t1", "att_check_videoGr8.t1", 
+                           "att_check_videoGr9.t1")) 
+
+# calculate time spent watching the videos
+data_time <- data_time[!is.na(data_time$session),]
+sum(is.na(data_time$session))
+vid1_watch_time <- calculate_vid1_watch_time(data=data_time)
+vid2_watch_time <- calculate_vid2_watch_time(data=data_time)
+
+# merge this data with the clean dataset
+data_final_vid12 <- full_join(vid1_watch_time, vid2_watch_time, by="session") %>% 
+  full_join(data_clean, by="session")
+
+# calculate if watch time is less than the length of the video (=error)
+vid1_too_short <- calculate_vid1_too_short(data=data_final_vid12)
+vid2_too_short <- calculate_vid2_too_short(data=data_final_vid12)
+
+# merge this data to the final
+data_final <- full_join(vid1_too_short[, c("vid1_too_short", "session")], 
+                        vid2_too_short[, c("vid2_too_short", "session")], by="session") %>% 
+  full_join(data_clean, by="session")
+
+# calculate overall error score
+data_final$att_check_sum_t1 <- rowSums(data_final[, c("att_check_item_errors_t1", "att_check_video_errors", 
+                                                      "vid1_too_short", "vid2_too_short")])
+data_final$att_check_sum_t1_t4 <- rowSums(data_final[, c("att_check_item_errors_t1_t4", "att_check_video_errors", 
+                                                         "vid1_too_short", "vid2_too_short")])
+
+# clear all helper data, but the final
+# rm(list=setdiff(ls(), "data_final"))
+ 
+```
+
+```{r att_check_plot, eval=T, echo=F}
+# baseline data  
+plot_error_baseline(data=data_final)
+
+# longitudinal data  
+plot_error_longitudinal(data=data_final)
+
+```
+```{r save_display_final_data, eval=T, echo=T}
+
+## final data 
+dim(data_raw)
+dim(data_clean)
+dim(data_time)
+dim(data_final)
+
+str(data_clean)
+str(data_time)
+str(data_final)
+
+## save clean & time data
+if (overwrite_data) {
+  saveRDS(data_final, file = "./Data/dataBPD_final.rds")
+  write.csv2(data_final, file="./Data/dataBPD_final.csv")
+}
+
+if (overwrite_data) {
+  saveRDS(data_time, file="./Data/dataBPD_final_time.rds")
+  write.csv2(data_time, file="./Data/dataBPD_final_time.csv")
+}
+```
+
+
+
+
+

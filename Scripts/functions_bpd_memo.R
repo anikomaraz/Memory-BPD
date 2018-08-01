@@ -1,0 +1,274 @@
+
+#setwd("~/Google Drive/_BPD_memory_Humboldt/Data_analysis")
+library(tidyverse)
+
+## LOAD PACKAGES
+load_my_packages <- function(package){
+  new.package <- packages[!(package %in% installed.packages()[, "Package"])]
+  if (length(new.package)) 
+    install.package(new.package, dependencies = TRUE)
+  sapply(package, require, character.only = TRUE)
+}
+
+## GET AND MERGE DATA
+# Task: call 6 datasets (2 screening + 4 surveys) for each data collection (facebook and mturk), 
+# insert time indicator (i.e. t1) to variable names, 
+# and merge them by session (output: data_row())
+
+
+# get databases from facebook 
+get_bpdMemo_raw_data <- function(my_version="180618") {
+    
+    # pull databases 
+    data_sc <- read.csv(paste0("./Data/screen_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+    data_scP <- read.csv(paste0("./Data/screen_positive_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+    data_t1 <- read.csv(paste0("./Data/part1_BPDMemo_", my_version, ".csv"), sep=";",  stringsAsFactors = F)
+    data_t2 <- read.csv(paste0("./Data/part2_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+    data_t3 <- read.csv(paste0("./Data/part3_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+    data_t4 <- read.csv(paste0("./Data/part4_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+    data_t1time <- read.csv(paste0("./Data/part1_BPDMemo_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  
+    
+    ## add a suffix, so that variables do not mix when merged into one dataframe
+    colnames(data_sc) <- paste(colnames(data_sc), "sc", sep=".")
+    colnames(data_scP) <- paste(colnames(data_scP), "scP", sep=".")
+    colnames(data_t1) <- paste(colnames(data_t1), "t1", sep=".")
+    colnames(data_t2) <- paste(colnames(data_t2), "t2", sep=".")
+    colnames(data_t3) <- paste(colnames(data_t3), "t3", sep=".")
+    colnames(data_t4) <- paste(colnames(data_t4), "t4", sep=".")
+    colnames(data_t1time) <- paste(colnames(data_t1time), "t1", sep=".")
+    
+    ## the column name 'session' needs to be identical for merging 
+    names(data_sc)[names(data_sc) == "session.sc"] <- "session"
+    names(data_scP)[names(data_scP) == "session.scP"] <- "session"
+    names(data_t1)[names(data_t1) == "session.t1"] <- "session"
+    names(data_t2)[names(data_t2) == "session.t2"] <- "session"
+    names(data_t3)[names(data_t3) == "session.t3"] <- "session"
+    names(data_t4)[names(data_t4) == "session.t4"] <- "session"
+    names(data_t1time)[names(data_t1time) == "session.t1"] <- "session"
+    
+    # merge databases (except t1time, which comes later)
+    data_tmp1 <- data_sc %>% dplyr::left_join(data_scP, all=F, by="session")
+    data_tmp2 <- data_tmp1 %>% dplyr::left_join(data_t1, all=F, by="session")
+    data_tmp3 <- data_tmp2 %>% dplyr::left_join(data_t2, all=F, by="session")
+    data_tmp4 <- data_tmp3 %>% dplyr::left_join(data_t3, all=F, by="session")
+    data_raw <- data_tmp4 %>% dplyr::left_join(data_t4, all=F, by="session") 
+    
+    data_raw <<- data_raw
+    data_t1time <<- data_t1time
+  }
+
+
+# get databases from mturk
+
+get_bpdMemo_raw_data_mturk <- function(my_version="180727") {    
+  
+  # pull databases 
+  data_sc_mturk <- read.csv(paste0("./Data/screen_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_scP_mturk <- read.csv(paste0("./Data/screen_positive_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t1_mturk <- read.csv(paste0("./Data/part1_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t2_mturk <- read.csv(paste0("./Data/part2_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t3_mturk <- read.csv(paste0("./Data/part3_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t4_mturk <- read.csv(paste0("./Data/part4_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t1time_mturk <- read.csv(paste0("./Data/part1_MTurk_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+
+  ## add a suffix, so that variables do not mix when merged into one dataframe
+    colnames(data_sc_mturk) <- paste(colnames(data_sc_mturk), "sc", sep=".")
+    colnames(data_scP_mturk) <- paste(colnames(data_scP_mturk), "scP", sep=".")
+    colnames(data_t1_mturk) <- paste(colnames(data_t1_mturk), "t1", sep=".")
+    colnames(data_t2_mturk) <- paste(colnames(data_t2_mturk), "t2", sep=".")
+    colnames(data_t3_mturk) <- paste(colnames(data_t3_mturk), "t3", sep=".")
+    colnames(data_t4_mturk) <- paste(colnames(data_t4_mturk), "t4", sep=".")
+    colnames(data_t1time_mturk) <- paste(colnames(data_t1time_mturk), "t1", sep=".")
+
+  ## the column name 'session' needs to be identical for merging 
+    names(data_sc_mturk)[names(data_sc_mturk) == "session.sc"] <- "session"
+    names(data_scP_mturk)[names(data_scP_mturk) == "session.scP"] <- "session"
+    names(data_t1_mturk)[names(data_t1_mturk) == "session.t1"] <- "session"
+    names(data_t2_mturk)[names(data_t2_mturk) == "session.t2"] <- "session"
+    names(data_t3_mturk)[names(data_t3_mturk) == "session.t3"] <- "session"
+    names(data_t4_mturk)[names(data_t4_mturk) == "session.t4"] <- "session"
+    names(data_t1time_mturk)[names(data_t1time_mturk) == "session.t1"] <- "session"
+
+  # merge databases (except t1time, which comes later)
+    data_tmp1_mturk <- data_sc_mturk %>% dplyr::left_join(data_scP_mturk, all=F, by="session")
+    data_tmp2_mturk <- data_tmp1_mturk %>% dplyr::left_join(data_t1_mturk, all=F, by="session")
+    data_tmp3_mturk <- data_tmp2_mturk %>% dplyr::left_join(data_t2_mturk, all=F, by="session")
+    data_tmp4_mturk <- data_tmp3_mturk %>% dplyr::left_join(data_t3_mturk, all=F, by="session")
+    data_raw_mturk <- data_tmp4_mturk %>% dplyr::left_join(data_t4_mturk, all=F, by="session") 
+
+    data_raw_mturk <<- data_raw_mturk
+    data_t1time_mturk <<- data_t1time_mturk
+  }
+
+
+## CONVERT VARIABLES
+convert_character_to_integer <- function(my_vars, data) {
+  data[, my_vars] <- as.integer(as.character(data[, my_vars]))
+}
+
+convert_integer_to_character <- function(my_vars, data) {
+  data[, my_vars] <- as.character(as.integer(data[, my_vars]))
+}
+
+
+## ANONYMISE
+anonymize_data <- function() {
+  data_raw <- data_raw %>% dplyr::select(-starts_with("server_")) %>%
+  select(-starts_with("ip_address")) %>%
+  select(-starts_with("ip.")) %>%
+  select(-starts_with("browser.")) %>%
+  select(-starts_with("nickname")) %>% select(-starts_with("email"))
+  data_raw <<- data_raw
+}
+
+# ATTENTION CHECK
+calculate_att_check_item_errors_t1 <- function(data = data, 
+                                                 var1 = "att_check1.t1", var2 = "att_check2.t1") 
+    {
+    att_check_item_errors_t1 <- 
+          ifelse(data[, var1] == "5" | is.na(data[, var1]), 0, 1) +
+          ifelse(data[, var2] == "3" | is.na(data[, var2]), 0, 1) 
+    return(att_check_item_errors_t1)
+    }
+  
+ calculate_att_check_item_errors_t1_t4 <- function(data = data, 
+                                                   var1 = "att_check1.t1", var2 = "att_check2.t1", 
+                                                  var3 = "att_check1.t2", var4 = "att_check2.t2", 
+                                                  var5 = "att_check1.t3", var6 = "att_check2.t3", 
+                                                  var7 = "att_check1.t4", var8 = "att_check2.t4", 
+                                                  var9 = "att_check3.t4") 
+   {
+   att_check_item_errors_t1_t4 <-
+          ifelse(data[, var1] == "5" | is.na(data[, var1]), 0, 1) +
+          ifelse(data[, var2] == "3" | is.na(data[, var2]), 0, 1) +
+          ifelse(data[, var3] == "3" | is.na(data[, var3]), 0, 1) +
+          ifelse(data[, var4] == "7" | is.na(data[, var4]), 0, 1) +
+          ifelse(data[, var5] == "2" | is.na(data[, var5]), 0, 1) +
+          ifelse(data[, var6] == "7" | is.na(data[, var6]), 0, 1) +
+          ifelse(data[, var7] == "5" | is.na(data[, var7]), 0, 1) +
+          ifelse(data[, var8] == "6" | is.na(data[, var8]), 0, 1) +
+          ifelse(data[, var9] == "4" | is.na(data[, var9]), 0, 1) 
+ return(att_check_item_errors_t1_t4)     
+ }
+    
+
+calculate_att_check_video_errors <- function(data = data, vars=c( "att_check_videoGr1.t1", 
+                                                                  "att_check_videoGr2.t1", 
+                                                                  "att_check_videoGr3.t1", 
+                                                                  "att_check_videoGr4.t1", 
+                                                                  "att_check_videoGr5.t1", 
+                                                                  "att_check_videoGr6.t1", 
+                                                                  "att_check_videoGr7.t1", 
+                                                                  "att_check_videoGr8.t1", 
+                                                                  "att_check_videoGr9.t1")) {
+  att_check_video <- 
+    ifelse(data[, vars] == "2",    # "2" is always the correct solution
+                                  0, 1)
+    att_check_video <- rowSums(att_check_video, na.rm=T)
+    return(att_check_video)
+  }
+
+
+
+
+## TRIAL "Watch time" is defined as the difference between
+# "video_trial" (displaying the video)
+# and
+# "check_test" (appears automatically following clicking on "finished watching",
+# worded as Did you manage to watch the clip from the beginning to the end **with voice**?
+calculate_vid1_watch_time <-  function(data=data) {
+  vid1_watch_time <- data %>%
+    select(session, item_name.t1, shown.t1) %>% 
+    filter(item_name.t1 %in% c("check_test", "video_trial")) %>%
+    spread(item_name.t1, shown.t1) %>%
+    mutate(video_trial = as_datetime(video_trial), check_test = as_datetime(check_test),
+           vid1_difftime = as.numeric(difftime(check_test, video_trial, unit = "secs"))) 
+  return(vid1_watch_time)
+  }
+
+## TEST watch time is defined as the time difference between
+  # "prompt_play" (Which appears at the same time as the video)
+  # and
+  # "seen_before" which is an automatically displayed item following submission after the video
+      # (Have you seen this movie before?)
+
+calculate_vid2_watch_time <- function (data=data) {
+  vid2_watch_time <- data %>%
+    select(session, item_name.t1, shown.t1) %>% 
+    filter(item_name.t1 %in% c("seen_before", "prompt_play")) %>%
+    spread(item_name.t1, shown.t1) %>%
+    mutate(prompt_play = as_datetime(prompt_play), seen_before = as_datetime(seen_before),
+           vid2_difftime = as.numeric(difftime(seen_before, prompt_play, unit = "secs")))
+  return(vid2_watch_time)
+  }
+ 
+
+# check if participants spent less time on the site, than the length of the video (=error)
+
+## trial (Video1)
+calculate_vid1_too_short <- function(data=data) {
+  vid1_too_short <- data %>%  
+     mutate(vid1_too_short = ifelse(vid1_difftime > 240 | is.na(vid1_difftime), 0, 1))
+  return(vid1_too_short)
+  }
+
+## test (Video2)
+calculate_vid2_too_short <- function(data=data) {
+  vid2_too_short <-  data %>% 
+    mutate(vid2_too_short =
+              ifelse(Group.t1 == 1 & vid2_difftime > 126, 0, 
+              ifelse(Group.t1 == 2 & vid2_difftime > 249, 0,
+              ifelse(Group.t1 == 3 & vid2_difftime > 131, 0,
+              ifelse(Group.t1 == 4 & vid2_difftime > 41, 0,
+              ifelse(Group.t1 == 5 & vid2_difftime > 26, 0,
+              ifelse(Group.t1 == 6 & vid2_difftime > 44, 0,
+              ifelse(Group.t1 == 7 & vid2_difftime > 266, 0,
+              ifelse(Group.t1 == 8 & vid2_difftime > 156, 0,
+              ifelse(Group.t1 == 9 & vid2_difftime > 171, 0, 
+              ifelse(is.na(vid2_difftime), 0, 1)))))))))))
+  return(vid2_too_short)
+  }
+
+
+### PLOTTING
+
+# baseline error plotting
+plot_error_baseline <-  function (data=data) {
+  par(mfrow=c(3, 2), mar=c(2, 2, 4, 2))
+  with(data, {
+    barplot(table(att_check_item_errors_t1), main="Errors on attention check items (T1)")
+    barplot(table(vid1_too_short), main="Video1 (test) watched in too short time")
+    barplot(table(vid2_too_short), main="Video2 (target) watched in too short time")
+    barplot(table(att_check_video_errors), main="Errors on video content related \nattention check items")
+    barplot(table(att_check_sum_t1), main="Total number of errors, T1")
+  title(main="BASELINE DATA", outer=T)
+  })
+}
+
+# longitudinal error plotting
+plot_error_longitudinal <- function (data=data) {
+  par(mfrow=c(3, 2), mar=c(2, 2, 4, 2))
+with(data, {
+  barplot(table(att_check_item_errors_t1_t4), main="Errors on attention check items (T1-T4)")
+  barplot(table(vid1_too_short), main="Video1 (test) watched in too short time")
+  barplot(table(vid2_too_short), main="Video2 (target) watched in too short time")
+  barplot(table(att_check_video_errors), main="Errors on video content related \nattention check items")
+  barplot(table(att_check_sum_t1_t4), main="Total number of errors, (T1-T4)")
+  title(main="BASELINE DATA", outer=T)
+  })
+}
+
+
+## DESCRIPTIVE STATISTICS
+
+
+  
+  
+  
+  
+  
+
+
+
+
