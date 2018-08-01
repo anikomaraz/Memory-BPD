@@ -14,7 +14,7 @@ load_my_packages <- function(package){
 # Task: call 6 datasets (2 screening + 4 surveys) for each data collection (facebook and mturk), 
 # insert time indicator (i.e. t1) to variable names, 
 # and merge them by session (output: data_row())
-
+#
 # these columns have different classes when read.csv is called, so I am going to match their class for merging
 cols_to_integer <- c("age.sc", "age.t1", "age.t2", 
                      "lec_1.t4", "lec_1.t1", "lec_3.t1", "lec_10.t1", "lec_12.t1", "lec_17.t1", 
