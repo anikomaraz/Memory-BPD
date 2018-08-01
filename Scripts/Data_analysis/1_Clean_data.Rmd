@@ -4,14 +4,13 @@ output: html_document
 ---
 
 ```{r setup_finetune, include=T, echo=FALSE}
-#setwd("~/Google Drive/_BPD_memory_Humboldt/Data_analysis")
 
-# call helper file
-source("functions_bpd_memo2.R")
-source("not_approved_screening_sessions.R")
+# call helper files
+source("../functions_bpd_memo.R")
+source("../not_approved_screening_sessions.R")
 
 # load packages
-packages <- c("ggplot2", "tidyverse", "lubridate", "data.table")
+packages <- c("ggplot2", "tidyverse", "lubridate", "data.table", "here")
 load_my_packages(packages)
 
 # user-defined options
@@ -25,12 +24,11 @@ overwrite_data = TRUE  # if TRUE, then the final data will be saved (overwritten
 
 
 ```{r get_clean_data, eval=TRUE, echo=FALSE}
-get_bpdMemo_raw_data(my_version="180726") # results in data_raw AND  data_t1time
-get_bpdMemo_raw_data_mturk(my_version="180727") # returns data_raw_mturk AND  data_t1time_mturk
-
+get_bpdMemo_raw_data(my_version="180726") # returns data_raw AND  data_t1time
+get_bpdMemo_raw_data_mturk(my_version="180801") # returns data_raw_mturk AND  data_t1time_mturk
 
 # merge facebook and mturk data
-#data_raw_full <- bind_rows(data_raw, data_raw_mturk)
+data_raw <- bind_rows(data_raw, data_raw_mturk)
 
 ## for security reasons I will remove all variables based on which participants could potentially be identified
 anonymize_data()  #returns data_raw
@@ -47,7 +45,6 @@ N1_raw <- length(data_clean$session)
 data_clean <- data_clean[!data_clean$session %in% remove_test_sessions,]
 data_t1time$session <- lapply(data_t1time$session, as.character) %>% unlist()
 data_time <- data_t1time[!(data_t1time$session %in% remove_test_sessions), ]
-data_time <- data_time[lengths(data_time$session) > 0L,]
 N2_notest <- length(data_clean$session)
 
 ## remove those who did not fill out the screening
@@ -147,6 +144,7 @@ plot_error_baseline(data=data_final)
 plot_error_longitudinal(data=data_final)
 
 ```
+
 ```{r save_display_final_data, eval=T, echo=T}
 
 ## final data 
@@ -161,14 +159,15 @@ str(data_final)
 
 ## save clean & time data
 if (overwrite_data) {
-  saveRDS(data_final, file = "./Data/dataBPD_final.rds")
-  write.csv2(data_final, file="./Data/dataBPD_final.csv")
+  saveRDS(data_final, file = "../../Data/dataBPD_final.rds")
+  write.csv2(data_final, file="../../Data/dataBPD_final.csv")
 }
 
 if (overwrite_data) {
-  saveRDS(data_time, file="./Data/dataBPD_final_time.rds")
-  write.csv2(data_time, file="./Data/dataBPD_final_time.csv")
+  saveRDS(data_time, file="../../Data/dataBPD_final_time.rds")
+  write.csv2(data_time, file="../../Data/dataBPD_final_time.csv")
 }
+
 ```
 
 

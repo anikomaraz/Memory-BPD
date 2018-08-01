@@ -1,4 +1,10 @@
-.Rproj.user
+
+
 .Rhistory
 .RData
 .Ruserdata
+.Rproj  # everything that ends with .Rproj
+.html
+.pdf
+Raw_data/
+.Rproj.user

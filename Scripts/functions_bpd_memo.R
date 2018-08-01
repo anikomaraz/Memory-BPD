@@ -15,18 +15,23 @@ load_my_packages <- function(package){
 # insert time indicator (i.e. t1) to variable names, 
 # and merge them by session (output: data_row())
 
+# these columns have different classes when read.csv is called, so I am going to match their class for merging
+cols_to_integer <- c("age.sc", "age.t1", "age.t2", 
+                     "lec_1.t4", "lec_1.t1", "lec_3.t1", "lec_10.t1", "lec_12.t1", "lec_17.t1", 
+                     "lec_3.t4", "lec_15.t4", "lec_17.t4")
+
 
 # get databases from facebook 
-get_bpdMemo_raw_data <- function(my_version="180618") {
+get_bpdMemo_raw_data <- function(my_version="180726") {
     
     # pull databases 
-    data_sc <- read.csv(paste0("./Data/screen_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-    data_scP <- read.csv(paste0("./Data/screen_positive_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-    data_t1 <- read.csv(paste0("./Data/part1_BPDMemo_", my_version, ".csv"), sep=";",  stringsAsFactors = F)
-    data_t2 <- read.csv(paste0("./Data/part2_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-    data_t3 <- read.csv(paste0("./Data/part3_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-    data_t4 <- read.csv(paste0("./Data/part4_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-    data_t1time <- read.csv(paste0("./Data/part1_BPDMemo_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+    data_sc <- read.csv2(paste0("../../Data/Raw_data/screen_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+    data_scP <- read.csv2(paste0("../../Data/Raw_data/screen_positive_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+    data_t1 <- read.csv2(paste0("../../Data/Raw_data/part1_BPDMemo_", my_version, ".csv"), sep=";",  stringsAsFactors = F)
+    data_t2 <- read.csv2(paste0("../../Data/Raw_data/part2_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+    data_t3 <- read.csv2(paste0("../../Data/Raw_data/part3_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+    data_t4 <- read.csv2(paste0("../../Data/Raw_data/part4_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+    data_t1time <- read.csv2(paste0("../../Data/Raw_data/part1_BPDMemo_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
   
     
     ## add a suffix, so that variables do not mix when merged into one dataframe
@@ -54,6 +59,12 @@ get_bpdMemo_raw_data <- function(my_version="180618") {
     data_tmp4 <- data_tmp3 %>% dplyr::left_join(data_t3, all=F, by="session")
     data_raw <- data_tmp4 %>% dplyr::left_join(data_t4, all=F, by="session") 
     
+    for (i in cols_to_integer) {
+      data_raw[ ,i] <- as.integer(data_raw[, i])
+    }
+    
+    data_t1time <- data_t1time[lengths(data_t1time$session) > 0L,]
+    
     data_raw <<- data_raw
     data_t1time <<- data_t1time
   }
@@ -64,13 +75,13 @@ get_bpdMemo_raw_data <- function(my_version="180618") {
 get_bpdMemo_raw_data_mturk <- function(my_version="180727") {    
   
   # pull databases 
-  data_sc_mturk <- read.csv(paste0("./Data/screen_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_scP_mturk <- read.csv(paste0("./Data/screen_positive_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t1_mturk <- read.csv(paste0("./Data/part1_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t2_mturk <- read.csv(paste0("./Data/part2_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t3_mturk <- read.csv(paste0("./Data/part3_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t4_mturk <- read.csv(paste0("./Data/part4_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t1time_mturk <- read.csv(paste0("./Data/part1_MTurk_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_sc_mturk <- read.csv(paste0("../../Data/Raw_data/screen_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_scP_mturk <- read.csv(paste0("../../Data/Raw_data/screen_positive_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t1_mturk <- read.csv(paste0("../../Data/Raw_data/part1_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t2_mturk <- read.csv(paste0("../../Data/Raw_data/part2_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t3_mturk <- read.csv(paste0("../../Data/Raw_data/part3_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t4_mturk <- read.csv(paste0("../../Data/Raw_data/part4_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t1time_mturk <- read.csv(paste0("../../Data/Raw_data/part1_MTurk_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
 
   ## add a suffix, so that variables do not mix when merged into one dataframe
     colnames(data_sc_mturk) <- paste(colnames(data_sc_mturk), "sc", sep=".")
@@ -96,7 +107,13 @@ get_bpdMemo_raw_data_mturk <- function(my_version="180727") {
     data_tmp3_mturk <- data_tmp2_mturk %>% dplyr::left_join(data_t2_mturk, all=F, by="session")
     data_tmp4_mturk <- data_tmp3_mturk %>% dplyr::left_join(data_t3_mturk, all=F, by="session")
     data_raw_mturk <- data_tmp4_mturk %>% dplyr::left_join(data_t4_mturk, all=F, by="session") 
-
+    
+    for (i in cols_to_integer) {
+      data_raw_mturk[ ,i] <- as.integer(data_raw_mturk[, i])
+    }
+    
+    data_t1time_mturk <- data_t1time_mturk[lengths(data_t1time_mturk$session) > 0L,]
+    
     data_raw_mturk <<- data_raw_mturk
     data_t1time_mturk <<- data_t1time_mturk
   }

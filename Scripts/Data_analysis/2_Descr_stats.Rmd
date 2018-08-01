@@ -5,40 +5,89 @@ output: html_document
 
 
 ```{r get_functions, eval=T, echo=F}
-source("functions_bpd_memo2.R")
-source("not_approved_screening_sessions.R")
+source("../functions_bpd_memo.R")
 
 # load packages
 packages <- c("ggplot2", "tidyverse", "lubridate", "data.table")
 load_my_packages(packages)
-```
-
-```{r get_data, eval=T, echo=F}
-data_clean <- read.csv2("./Data/dataBPD_clean.csv")
-data_time_clean <- read.csv2("./Data/dataBPD_clean_time.csv")
-
-data_clean$gender.sc <- as.factor(data_clean$gender.sc) 
-data_clean$gender.t1 <- as.factor(data_clean$gender.t1) 
-
-levels(data_clean[, c("gender.sc", "gender.t1")]) <- c("1"="female", "2"="male", "3"="other", "4"="I don't want to tell")
-
 
 ```
 
-```{r descr_demogr, eval=T, echo=T}
+```{r get_format_data, eval=T, echo=F}
+data_final <- read.csv2("../../Data/dataBPD_final.csv")
+data_time_final <- read.csv2("../../Data/dataBPD_final_time.csv")
+
+cols_to_factor <- c("gender.sc", "gender.t1", "edu_years_compl.t1", "edu_highest.t1", "SES_subj.t1", "national.t1", 
+                    "work.t1", "study.t1", "relationship.t1", "relationship_qual.t1", 
+                    "English_first.sc", "English_level.sc", "English_first.t1", "English_level.t1")
+for (i in cols_to_factor) {
+  data_final[, i] <- as.factor(data_final[, i]) 
+  }
+
+levels(data_final$gender.sc) <- c("1"="female", "2"="male", "3"="other", "4"="I don't want to tell")
+levels(data_final$gender.t1) <- c("1"="female", "2"="male", "3"="other", "4"="I don't want to tell")
+levels(data_final$edu_highest.t1) <- c("0"="No formal education", "1"="Primary school (or equivalent)", 
+                                       "2"="Secondary/high school (or equivalent)", "3"="Vocational school (or equivalent)", 
+                                       "4"="Undergraduate school/BA degree (or equivalent)", "5"="Graduate school/MA degree (or equivalent)", 
+                                       "6"="PhD/MBA or similar")
+levels(data_final$edu_years_compl.t1) <- c("1" = "4 years or less",	"2" =	"5-8 years", 	"3" =	"9-12 years", 
+                                           "4" = "12-17 years", "5" = "17-20 years", "6" =	"more than 20 years")
+levels(data_final$edu_highest.t1) <- c("0" = "No formal education", "1" =	"Primary school (or equivalent)", 
+                                       "2" =	"Secondary/high school (or equivalent)", "3" =	"Vocational school (or equivalent)", 
+                                       "4" =	"Undergraduate school/BA degree (or equivalent)", "5" =	"Graduate school/MA degree (or equivalent)", 
+                                       "6" =	"PhD/MBA or similar")
+levels(data_final$SES_subj.t1) <- c("poorest" =	"Among the poorest", "poorer" =	"Poor", "poor" = "Below average", 
+                                    "average" = "Average", 
+                                    "rich" = "Above the average",  "richer" =	"Wealthy", "richest"	= "Among the wealthiest")
+levels(data_final$work.t1) <- c("1" = "yes, full-time", "2" = "yes, part-time", "3" = "yes, less than part time", "4" = "no")
+levels(data_final$study.t1) <- c("1" = "no", "2" = "yes")
+levels(data_final$relationship.t1) <- c("1" = "yes", "2" = "no", "3" = "other", "4" = "I don't want to tell")
+levels(data_final$relationship_qual.t1) <- c("1" = "married", "2" = "living together", "3" = "not living together", "4" = "I don't want to tell")
+levels(data_final$English_first.sc) <- c("1" = "yes", "2" = "no")
+levels(data_final$English_first.t1) <- c("1" = "yes", "2" = "no")
+levels(data_final$English_level.sc) <- c("1" = "very strong (close to native)", "2" = "strong (fluent)", "3" = "medium (I speak okay)", 
+                                         "4" = "weak (I only speak a little)", "5" = "very weak" )
+levels(data_final$English_level.t1) <- c("1" = "very strong (close to native)", "2" = "strong (fluent)", "3" = "medium (I speak okay)", 
+                                         "4" = "weak (I only speak a little)", "5" = "very weak" )
+
+
+```
+
+```{r describe_demogr, eval=T, echo=T}
+# summarise demographic variables
 table_descr_demogr <- list(
-  "N @entry" = length(data_clean$session),
-  "N @screened" = sum(!is.na(data_clean$bpd_s1.sc)),
-  "age mean"=mean(data_clean$age.sc, na.rm=T), 
-  "age SD" = sd(data_clean$age.sc, na.rm=T),
-  "gender"=table(data_clean$gender.sc))
+  "N" = length(data_final$session),
+  "age mean" = mean(data_final$age.sc, na.rm=T), 
+  "age SD" = sd(data_final$age.sc, na.rm=T),
+  "gender" = table(data_final$gender.sc), 
+  "gender_percent" = round(prop.table(table(data_final$gender.sc))*100, 2),
+  "education_years_completed_percent" = round(prop.table(table(data_final$edu_years_compl.t1))*100, 2),
+  "education_percent" = round(prop.table(table(data_final$edu_highest.t1))*100, 2), 
+  "SES subjective percent" = round(prop.table(table(data_final$SES_subj.t1))*100, 2), 
+  "nationality" = table(data_final$national.t1), 
+  "work status percent" = round(prop.table(table(data_final$work.t1))*100, 2),
+  "study status percent" = round(prop.table(table(data_final$study.t1))*100, 2),
+  "relationship status percent" = round(prop.table(table(data_final$relationship.t1))*100, 2),
+  "relationship quality percent" = round(prop.table(table(data_final$relationship_qual.t1))*100, 2),
+  "English native percent" = round(prop.table(table(data_final$English_first.sc))*100, 2), 
+  "English level percent" = round(prop.table(table(data_final$English_level.sc))*100, 2)
+  )
 
+table_descr_demogr
 
+# group assigment 
+table(data_final$Group.t1)
+
+```
+
+```{r calculate_scales_variables}
 
 
 ```
 
-```{r}
+
+
+```{r describe_scales}
 save for later:
   Stats <- function(x){
       Mean <- mean(x, na.rm=TRUE)
