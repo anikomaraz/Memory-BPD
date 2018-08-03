@@ -19,7 +19,8 @@ data_time_final <- read.csv2("../../Data/dataBPD_final_time.csv")
 
 cols_to_factor <- c("gender.sc", "gender.t1", "edu_years_compl.t1", "edu_highest.t1", "SES_subj.t1", "national.t1", 
                     "work.t1", "study.t1", "relationship.t1", "relationship_qual.t1", 
-                    "English_first.sc", "English_level.sc", "English_first.t1", "English_level.t1")
+                    "English_first.sc", "English_level.sc", "English_first.t1", "English_level.t1", 
+                    "medication.t1", "diagn_bpd.t1")
 for (i in cols_to_factor) {
   data_final[, i] <- as.factor(data_final[, i]) 
   }
@@ -49,7 +50,8 @@ levels(data_final$English_level.sc) <- c("1" = "very strong (close to native)", 
                                          "4" = "weak (I only speak a little)", "5" = "very weak" )
 levels(data_final$English_level.t1) <- c("1" = "very strong (close to native)", "2" = "strong (fluent)", "3" = "medium (I speak okay)", 
                                          "4" = "weak (I only speak a little)", "5" = "very weak" )
-
+levels(data_final$medication.t1) <- c("1" = "Yes", "2" = "No")
+levels(data_final$diagn_bpd.t1) <- c("1" = "Yes", "2" = "No")
 
 ```
 
@@ -70,7 +72,9 @@ table_descr_demogr <- list(
   "relationship status percent" = round(prop.table(table(data_final$relationship.t1))*100, 2),
   "relationship quality percent" = round(prop.table(table(data_final$relationship_qual.t1))*100, 2),
   "English native percent" = round(prop.table(table(data_final$English_first.sc))*100, 2), 
-  "English level percent" = round(prop.table(table(data_final$English_level.sc))*100, 2)
+  "English level percent" = round(prop.table(table(data_final$English_level.sc))*100, 2), 
+  "Medication taken?" = round(prop.table(table(data_final$medication.t1))*100, 2), 
+  "Borderline diagnosis?" = round(prop.table(table(data_final$diagn_bpd.t1))*100, 2)
   )
 
 table_descr_demogr
@@ -81,6 +85,73 @@ table(data_final$Group.t1)
 ```
 
 ```{r calculate_scales_variables}
+## AFFECT GROUPING
+data_final$Group_affect <- ifelse(data_final$Group.t1 %in% c("1", "2", "3"), "positive", 
+                                  ifelse(data_final$Group.t1 %in% c("4", "5", "6"), "neutral", 
+                                         ifelse(data_final$Group.t1 %in% c("7", "8", "9"), "negative", NA)))
+data_final$Group_affect <- factor(data_final$Group_affect, levels=c("1" = "positive", "2" = "neutral", "3"="negative"))
+
+## BORDERLINE SCREENING (MSI-BPD)
+data_final$BPD_screen <- rowSums(data_final[, grep("^bpd_s\\d+", colnames(data_final), value=T)], na.rm=T)
+
+## MOOD:   CESD, 10 items x5 response => range: 10-50
+data_final$CESD.t1 <-  rowSums(data_final[,grep("^cesd_.+.t1", colnames(data_final), value=T)], na.rm=T)
+data_final$CESD.t2 <-  rowSums(data_final[,grep("^cesd_.+.t2", colnames(data_final), value=T)], na.rm=T)
+data_final$CESD.t3 <-  rowSums(data_final[,grep("^cesd_.+.t3", colnames(data_final), value=T)], na.rm=T)
+data_final$CESD.t4 <-  rowSums(data_final[,grep("^cesd_.+.t4", colnames(data_final), value=T)], na.rm=T)
+
+## VIDEO AFFECTS: PANAS 20 items, x7 response => range: 20-140, 10 items for positive, 10 items for negative affect
+panas_positive_items <- c("panas_1", "panas_3", "panas_5", "panas_9", "panas_10",
+                          "panas_12", "panas_14", "panas_16", "panas_17", "panas_19")
+panas_negative_items <- c("panas_2", "panas_4", "panas_6", "panas_7", "panas_8",
+                          "panas_11", "panas_13", "panas_15", "panas_18", "panas_20")
+
+# per affect dimension (positive/negative)
+for (i in c(".t1", ".t2", ".t3", ".t4")) {
+  data_final[, paste0("PANAS_POS", i)] <- rowSums(data_final[, paste0(panas_positive_items, rep(paste0(i), 10))])
+  data_final[, paste0("PANAS_NEG", i)] <- rowSums(data_final[, paste0(panas_negative_items, rep(paste0(i), 10))])
+  }
+
+#sum score (neg-pos)
+for  (i in c(".t1", ".t2", ".t3", ".t4")) {
+  data_final[, paste0("PANAS", i)] <- (data_final[, paste0("PANAS_POS", i)] - data_final[, paste0("PANAS_NEG", i)])
+  }
+
+# PERSONALITY: IPIP 20 items, x5 response, 5 scales, each range 
+bfi_items_recode <- colnames(data_final[, grep("^ipip_.+[0-9]R", colnames(data_final), value=F)])
+data_final[, bfi_items_recode] <- (6 - data_final[, bfi_items_recode])
+setnames(data_final, names(data_final[, bfi_items_recode]), gsub(pattern="R", replacement="", names(data_final[, bfi_items_recode])))
+
+# compute the scores for the items:
+data_final$IPIP_openness <- rowSums(data_final[, grep("^ipip_agree", names(data_final), value=T)])
+data_final$IPIP_conscientiousness <- rowSums(data_final[, grep("^ipip_consc", names(data_final), value=T)])
+data_final$IPIP_extraversion <- rowSums(data_final[, grep("^ipip_extra", names(data_final), value=T)])
+data_final$IPIP_agreeableness <- rowSums(data_final[, grep("^ipip_agree", names(data_final), value=T)])
+data_final$IPIP_neuroticism <- rowSums(data_final[, grep("^ipip_neuro", names(data_final), value=T)])
+
+## BORDERLINE 2 (BORNOVALOVA ET AL)
+data_final$BPD <- rowSums(data_final[, grep("^bpd_\\D{3,}", colnames(data_final), value=T)], na.rm=T)
+data_final$BPD_stress <- rowSums(data_final[, grep("^bpd_stress+", colnames(data_final), value=T)], na.rm=T)
+data_final$BPD_alien <- rowSums(data_final[, grep("^bpd_alien+", colnames(data_final), value=T)], na.rm=T)
+data_final$BPD_control <- rowSums(data_final[, grep("^bpd_contr+", colnames(data_final), value=T)], na.rm=T)
+data_final$BPD_aggression <- rowSums(data_final[, grep("^bpd_aggr+", colnames(data_final), value=T)], na.rm=T)
+data_final$BPD_wellbeing <- rowSums(data_final[, grep("^bpd_wb+", colnames(data_final), value=T)], na.rm=T)
+data_final$BPD_abs1 <- rowSums(data_final[, grep("^bpd_abs_+", colnames(data_final), value=T)], na.rm=T)
+data_final$BPD_abs2 <- rowSums(data_final[, grep("^bpd_absExtra_+", colnames(data_final), value=T)], na.rm=T)
+
+## LIFE EVENT CHECKLIST
+lec_items.t1 <- c(grep("lec_.+.t1$", names(data_final), value=T))
+lec_items.t4 <- c(grep("lec_.+.t4$", names(data_final), value=T))
+data_final$LEC_positive.t1 <- ifelse(data_final[ , lec_items.t1] == "1" | data_final[ , lec_items.t1] == "2", T, F)
+data_final$LEC_positive.t4 <- ifelse(data_final[ , lec_items.t4] == "1" | data_final[ , lec_items.t4] == "2", T, F)
+
+
+
+```
+
+
+```{r bpd_scale, eval=T, echo=T}
+
 
 
 ```
@@ -88,18 +159,24 @@ table(data_final$Group.t1)
 
 
 ```{r describe_scales}
-save for later:
-  Stats <- function(x){
-      Mean <- mean(x, na.rm=TRUE)
-      SD <- sd(x, na.rm=TRUE)
-      Min <- min(x, na.rm=TRUE)
-      Max <- max(x, na.rm=TRUE)
-      return(c(Mean=Mean, SD=SD, Min=Min, Max=Max))
-    }
+scales <- c("BPD_screen", "CESD.t1", "CESD.t2", "CESD.t3", "CESD.t4", 
+            "PANAS_POS.t1", "PANAS_POS.t2", "PANAS_POS.t3", "PANAS_POS.t4", 
+            "PANAS_NEG.t1", "PANAS_NEG.t2", "PANAS_NEG.t3", "PANAS_NEG.t4",
+            "PANAS.t1", "PANAS.t2", "PANAS.t3", "PANAS.t4",
+            "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2", 
+            "LEC_positive.t1", "LEC_positive.t4")
+    
+for (i in scales) {
+      Mean <- mean(data_final[, i], na.rm=TRUE)
+      SD <- sd(data_final[, i], na.rm=TRUE)
+      Min <- min(data_final[, i], na.rm=TRUE)
+      Max <- max(data_final[, i], na.rm=TRUE)
+      descriptive_stats_scales <- cbind(c(Mean=Mean, SD=SD, Min=Min, Max=Max))
+      return(descriptive_stats_scales)
+}
 
-    cbind(DF, t(apply(newDF,1, Stats))) # Where newDF is define as above
-  
-  
+descriptive_stats_scales
   
 ```
 
