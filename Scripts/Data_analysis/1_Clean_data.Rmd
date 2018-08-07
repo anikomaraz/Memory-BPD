@@ -25,10 +25,13 @@ overwrite_data = TRUE  # if TRUE, then the final data will be saved (overwritten
 
 ```{r get_clean_data, eval=TRUE, echo=FALSE}
 get_bpdMemo_raw_data(my_version="180726") # returns data_raw AND  data_t1time
-get_bpdMemo_raw_data_mturk(my_version="180801") # returns data_raw_mturk AND  data_t1time_mturk
+get_bpdMemo_raw_data_mturk(my_version="180806") # returns data_raw_mturk AND  data_t1time_mturk
 
 # merge facebook and mturk data
 data_raw <- bind_rows(data_raw, data_raw_mturk)
+
+# merge facebook and mturk time data
+data_time <- bind_rows(data_t1time, data_t1time_mturk)
 
 ## for security reasons I will remove all variables based on which participants could potentially be identified
 anonymize_data()  #returns data_raw
@@ -43,8 +46,8 @@ N1_raw <- length(data_clean$session)
 
 ## get rid of test and empty sessions 
 data_clean <- data_clean[!data_clean$session %in% remove_test_sessions,]
-data_t1time$session <- lapply(data_t1time$session, as.character) %>% unlist()
-data_time <- data_t1time[!(data_t1time$session %in% remove_test_sessions), ]
+data_time$session <- sapply(data_time$session, as.character) 
+data_time <- data_time[!(data_time$session %in% remove_test_sessions), ]
 N2_notest <- length(data_clean$session)
 
 ## remove those who did not fill out the screening
@@ -64,9 +67,10 @@ data_clean$screen_bpd_posNeg <- data_clean$screen_bpd > 15
 data_clean$screen_positive <- ifelse(data_clean$screen_bpd_posNeg & 
                                        data_clean$age.sc != "under_18" &  
                                        data_clean$age.sc < 65 &  
-                                       data_clean$residence.sc == "United_States", T, F) #&  
-                                        #screen_attention_check == "2"))   # EZT VISSZA KELL ÁLLÍTANI, MIKOR BENNE VAN AZ MTURK DATA!!!!
-N5_screenpostive <- sum(data_clean$screen_positive)
+                                       data_clean$residence.sc == "United_States", T, F &  
+                                       data_clean$screen_attention_check.sc == "2")   
+data_clean <- data_clean[data_clean$screen_positive == T, ]
+N5_screenpostive <- length(data_clean$session)
 
 ## filter those who have full data (t1-t4)
 data_clean$session_full <- !is.na(data_clean[,"panas_1.t4"])
@@ -78,28 +82,20 @@ sample_N <- list(
   "test sessions excluded, no. of people clicking on the website:" = N2_notest, 
    "participants who were screened:" = N3_noblankscreening, 
   "participants who passed the screening attention check (screening for MTurk only):" = N4_nofailtest, 
-   "participants screened positive" = N5_screenpostive,
-  "participants who have full data (t1-t4)" = N6_sessionfull)
+   "participants screened positive (BASELINE)" = N5_screenpostive, # baseline data
+  "participants who have full data (t1-t4) (LONGITUDINAL)" = N6_sessionfull) # longitudinal data
 
 sample_N
 
 ```
 
 
-
-
-```{r att_check_calculate, eval=TRUE, echo=FALSE}
+```{r att_check_calculate_baseline, eval=TRUE, echo=FALSE}
 # ATTENTION CHECK 
 
 # errors on the classic attention check items
 data_clean$att_check_item_errors_t1 <- calculate_att_check_item_errors_t1(data=data_clean, "att_check1.t1", "att_check2.t1")
 
-data_clean$att_check_item_errors_t1_t4 <- calculate_att_check_item_errors_t1_t4(data=data_clean, 
-                                                                          var1 = "att_check1.t1", var2 = "att_check2.t1",
-                                                                          var3 = "att_check1.t2", var4 = "att_check2.t2",
-                                                                          var5 = "att_check1.t3", var6 = "att_check2.t3", 
-                                                                          var7 = "att_check1.t4", var8 = "att_check2.t4", 
-                                                                          var9 = "att_check3.t4")
 # errors on video-content-related attention check items
 data_clean$att_check_video_errors <- calculate_att_check_video_errors(
   data=data_clean, vars=c( "att_check_videoGr1.t1", "att_check_videoGr2.t1", "att_check_videoGr3.t1", "att_check_videoGr4.t1", 
@@ -109,8 +105,8 @@ data_clean$att_check_video_errors <- calculate_att_check_video_errors(
 # calculate time spent watching the videos
 data_time <- data_time[!is.na(data_time$session),]
 sum(is.na(data_time$session))
-vid1_watch_time <- calculate_vid1_watch_time(data=data_time)
-vid2_watch_time <- calculate_vid2_watch_time(data=data_time)
+vid1_watch_time <- calculate_vid1_difftime(data=data_time)
+vid2_watch_time <- calculate_vid2_difftime(data=data_time)
 
 # merge this data with the clean dataset
 data_final_vid12 <- full_join(vid1_watch_time, vid2_watch_time, by="session") %>% 
@@ -121,14 +117,29 @@ vid1_too_short <- calculate_vid1_too_short(data=data_final_vid12)
 vid2_too_short <- calculate_vid2_too_short(data=data_final_vid12)
 
 # merge this data to the final
-data_final <- full_join(vid1_too_short[, c("vid1_too_short", "session")], 
-                        vid2_too_short[, c("vid2_too_short", "session")], by="session") %>% 
+data_final <- full_join(vid1_too_short[, c("vid1_too_short", "vid1_difftime", "session")], 
+                        vid2_too_short[, c("vid2_too_short", "vid2_difftime", "session")], by="session") %>% 
   full_join(data_clean, by="session")
+#write.csv2(data_final, file="./data_final_tmp.csv")
 
 # calculate overall error score
 data_final$att_check_sum_t1 <- rowSums(data_final[, c("att_check_item_errors_t1", "att_check_video_errors", 
                                                       "vid1_too_short", "vid2_too_short")])
-data_final$att_check_sum_t1_t4 <- rowSums(data_final[, c("att_check_item_errors_t1_t4", "att_check_video_errors", 
+
+```
+
+
+```{r att_check_calculate_long, eval=TRUE, echo=FALSE}
+data_final_long <- data_final[data_final$session_full == TRUE, ]
+
+data_final_long$att_check_item_errors_t1_t4 <- calculate_att_check_item_errors_t1_t4(data=data_final_long, 
+                                                                          var1 = "att_check1.t1", var2 = "att_check2.t1",
+                                                                          var3 = "att_check1.t2", var4 = "att_check2.t2",
+                                                                          var5 = "att_check1.t3", var6 = "att_check2.t3", 
+                                                                          var7 = "att_check1.t4", var8 = "att_check2.t4", 
+                                                                          var9 = "att_check3.t4")
+
+data_final_long$att_check_sum_t1_t4 <- rowSums(data_final_long[, c("att_check_item_errors_t1_t4", "att_check_video_errors", 
                                                          "vid1_too_short", "vid2_too_short")])
 
 # clear all helper data, but the final
@@ -141,31 +152,59 @@ data_final$att_check_sum_t1_t4 <- rowSums(data_final[, c("att_check_item_errors_
 plot_error_baseline(data=data_final)
 
 # longitudinal data  
-plot_error_longitudinal(data=data_final)
+plot_error_longitudinal(data=data_final_long)
 
 ```
 
-```{r save_display_final_data, eval=T, echo=T}
 
-## final data 
-dim(data_raw)
-dim(data_clean)
-dim(data_time)
-dim(data_final)
 
-str(data_clean)
-str(data_time)
-str(data_final)
 
-## save clean & time data
+```{r final_data_bl_exclude_cheaters, eval=T, echo=T}
+
+## final data BASELINE
+N_baseline_all <- length(data_final$session)
+data_final_bl <- data_final[data_final$att_check_sum_t1 <= 1,]
+N_baseline_noError <- length(data_final_bl$session)
+
+N_errors_baseline <- list(
+    "total number of baseline data rows" = N_baseline_all,
+    "total number of participants with too many (>1) errors T1" = N_baseline_all - N_baseline_noError,
+    "total number of clean (final) data" = N_baseline_noError)
+N_errors_baseline
+
+```
+
+
+```{r final_data_long_exclude_cheaters, eval=T, echo=T}
+## final data LONGITUDINAL
+# exclude errors > 3 on longitudinal
+
+# data_final_long <- data_final[data_final$session_full == TRUE, ]
+N_fulldata_long <- length(data_final_long$session_full)
+
+
+data_final_long <- data_final_long[data_final_long$att_check_sum_t1_t4 < 3,]
+N_cleandata_long <- length(data_final_long$session_full)
+
+exclude_errors_long <- list(
+        "total number of baseline data rows" = N_fulldata_long,
+        "total number of participants with too many (>2) errors T1-T4" = N_fulldata_long - N_cleandata_long,
+        "total number of clean data" = N_cleandata_long)
+exclude_errors_long
+
+```
+
+```{r save_final_data}
+
+# keep baseline data only
+data_final_bl <-  data_final_bl[, c(grep(".+.t1$", names(data_final_bl), value=T), 
+                                    grep("session", names(data_final_bl), value=T), 
+                                    grep(".+.sc$", names(data_final_bl), value=T))]
+
+## save final  data
 if (overwrite_data) {
-  saveRDS(data_final, file = "../../Data/dataBPD_final.rds")
-  write.csv2(data_final, file="../../Data/dataBPD_final.csv")
-}
-
-if (overwrite_data) {
-  saveRDS(data_time, file="../../Data/dataBPD_final_time.rds")
-  write.csv2(data_time, file="../../Data/dataBPD_final_time.csv")
+  write.csv2(data_final_bl, file="../../Data/data_final_bl.csv")
+  write.csv2(data_final_long, file="../../Data/data_final_long.csv")
 }
 
 ```

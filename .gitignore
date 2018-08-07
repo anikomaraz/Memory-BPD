@@ -1,10 +1,7 @@
-
-
 .Rhistory
 .RData
 .Ruserdata
-.Rproj  # everything that ends with .Rproj
-.html
-.pdf
+.Rproj 
 Raw_data/
+MTurk_batch/
 .Rproj.user

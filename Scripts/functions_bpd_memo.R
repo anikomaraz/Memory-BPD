@@ -1,5 +1,6 @@
 
-#setwd("~/Google Drive/_BPD_memory_Humboldt/Data_analysis")
+setwd("/home/aniko/R/Memory-and-BPD/Scripts/Data_analysis")
+
 library(tidyverse)
 
 ## LOAD PACKAGES
@@ -20,10 +21,13 @@ cols_to_integer <- c("age.sc", "age.t1", "age.t2",
                      "lec_1.t4", "lec_1.t1", "lec_3.t1", "lec_10.t1", "lec_12.t1", "lec_17.t1", 
                      "lec_3.t4", "lec_15.t4", "lec_17.t4")
 
+cols_to_character <- c("shown_relative.t1", "answered_relative.t1")
+
+cols_to_numeric <- c("answered_relative.t1")
 
 # get databases from facebook 
 get_bpdMemo_raw_data <- function(my_version="180726") {
-    
+  
     # pull databases 
     data_sc <- read.csv2(paste0("../../Data/Raw_data/screen_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
     data_scP <- read.csv2(paste0("../../Data/Raw_data/screen_positive_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
@@ -33,7 +37,6 @@ get_bpdMemo_raw_data <- function(my_version="180726") {
     data_t4 <- read.csv2(paste0("../../Data/Raw_data/part4_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
     data_t1time <- read.csv2(paste0("../../Data/Raw_data/part1_BPDMemo_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
   
-    
     ## add a suffix, so that variables do not mix when merged into one dataframe
     colnames(data_sc) <- paste(colnames(data_sc), "sc", sep=".")
     colnames(data_scP) <- paste(colnames(data_scP), "scP", sep=".")
@@ -72,7 +75,7 @@ get_bpdMemo_raw_data <- function(my_version="180726") {
 
 # get databases from mturk
 
-get_bpdMemo_raw_data_mturk <- function(my_version="180727") {    
+get_bpdMemo_raw_data_mturk <- function(my_version="180806") {    
   
   # pull databases 
   data_sc_mturk <- read.csv(paste0("../../Data/Raw_data/screen_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
@@ -82,6 +85,7 @@ get_bpdMemo_raw_data_mturk <- function(my_version="180727") {
   data_t3_mturk <- read.csv(paste0("../../Data/Raw_data/part3_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
   data_t4_mturk <- read.csv(paste0("../../Data/Raw_data/part4_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
   data_t1time_mturk <- read.csv(paste0("../../Data/Raw_data/part1_MTurk_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  
 
   ## add a suffix, so that variables do not mix when merged into one dataframe
     colnames(data_sc_mturk) <- paste(colnames(data_sc_mturk), "sc", sep=".")
@@ -113,6 +117,10 @@ get_bpdMemo_raw_data_mturk <- function(my_version="180727") {
     }
     
     data_t1time_mturk <- data_t1time_mturk[lengths(data_t1time_mturk$session) > 0L,]
+    
+    for (i in cols_to_character) {
+      data_t1time_mturk[ ,i] <- as.character(data_t1time_mturk[, i])
+    }
     
     data_raw_mturk <<- data_raw_mturk
     data_t1time_mturk <<- data_t1time_mturk
@@ -194,14 +202,14 @@ calculate_att_check_video_errors <- function(data = data, vars=c( "att_check_vid
 # and
 # "check_test" (appears automatically following clicking on "finished watching",
 # worded as Did you manage to watch the clip from the beginning to the end **with voice**?
-calculate_vid1_watch_time <-  function(data=data) {
-  vid1_watch_time <- data %>%
+calculate_vid1_difftime <-  function(data=data) {
+  vid1_difftime <- data %>%
     select(session, item_name.t1, shown.t1) %>% 
     filter(item_name.t1 %in% c("check_test", "video_trial")) %>%
     spread(item_name.t1, shown.t1) %>%
     mutate(video_trial = as_datetime(video_trial), check_test = as_datetime(check_test),
            vid1_difftime = as.numeric(difftime(check_test, video_trial, unit = "secs"))) 
-  return(vid1_watch_time)
+  return(vid1_difftime)
   }
 
 ## TEST watch time is defined as the time difference between
@@ -210,14 +218,14 @@ calculate_vid1_watch_time <-  function(data=data) {
   # "seen_before" which is an automatically displayed item following submission after the video
       # (Have you seen this movie before?)
 
-calculate_vid2_watch_time <- function (data=data) {
-  vid2_watch_time <- data %>%
-    select(session, item_name.t1, shown.t1) %>% 
+calculate_vid2_difftime <- function (data=data) {
+  vid2_difftime <- data %>%
+    select(c("session", "item_name.t1", "shown.t1")) %>% 
     filter(item_name.t1 %in% c("seen_before", "prompt_play")) %>%
     spread(item_name.t1, shown.t1) %>%
     mutate(prompt_play = as_datetime(prompt_play), seen_before = as_datetime(seen_before),
            vid2_difftime = as.numeric(difftime(seen_before, prompt_play, unit = "secs")))
-  return(vid2_watch_time)
+  return(vid2_difftime)
   }
  
 
@@ -258,7 +266,7 @@ plot_error_baseline <-  function (data=data) {
     barplot(table(vid1_too_short), main="Video1 (test) watched in too short time")
     barplot(table(vid2_too_short), main="Video2 (target) watched in too short time")
     barplot(table(att_check_video_errors), main="Errors on video content related \nattention check items")
-    barplot(table(att_check_sum_t1), main="Total number of errors, T1")
+    barplot(table(att_check_sum_t1), main="TOTAL NUMBER OF ERRORS, T1")
   title(main="BASELINE DATA", outer=T)
   })
 }
@@ -271,8 +279,8 @@ with(data, {
   barplot(table(vid1_too_short), main="Video1 (test) watched in too short time")
   barplot(table(vid2_too_short), main="Video2 (target) watched in too short time")
   barplot(table(att_check_video_errors), main="Errors on video content related \nattention check items")
-  barplot(table(att_check_sum_t1_t4), main="Total number of errors, (T1-T4)")
-  title(main="BASELINE DATA", outer=T)
+  barplot(table(att_check_sum_t1_t4), main="TOTAL NUMBER OF ERRORS, (T1-T4)")
+  title(main="LONGITUDINAL DATA", outer=T)
   })
 }
 
