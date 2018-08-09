@@ -72,9 +72,13 @@ data_clean$screen_positive <- ifelse(data_clean$screen_bpd_posNeg &
 data_clean <- data_clean[data_clean$screen_positive == T, ]
 N5_screenpostive <- length(data_clean$session)
 
+## participants with no missing data on PANAS at t1
+data_clean <- data_clean[!is.na(data_clean$panas_1.t1),]
+N6_nomissing <- length(data_clean$session)
+
 ## filter those who have full data (t1-t4)
 data_clean$session_full <- !is.na(data_clean[,"panas_1.t4"])
-N6_sessionfull <- sum(data_clean$session_full)
+N7_sessionfull <- sum(data_clean$session_full)
 
 ## sample N accross data cleaning
 sample_N <- list(
@@ -82,8 +86,9 @@ sample_N <- list(
   "test sessions excluded, no. of people clicking on the website:" = N2_notest, 
    "participants who were screened:" = N3_noblankscreening, 
   "participants who passed the screening attention check (screening for MTurk only):" = N4_nofailtest, 
-   "participants screened positive (BASELINE)" = N5_screenpostive, # baseline data
-  "participants who have full data (t1-t4) (LONGITUDINAL)" = N6_sessionfull) # longitudinal data
+   "participants screened positive" = N5_screenpostive, # baseline data
+  "participiants with no missing data on T1 (PANAS) meaning they did Part1  (BASELINE)" = N6_nomissing,
+  "participants who have full data (t1-t4) (LONGITUDINAL)" = N7_sessionfull) # longitudinal data
 
 sample_N
 

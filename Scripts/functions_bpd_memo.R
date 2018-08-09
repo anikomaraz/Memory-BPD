@@ -287,12 +287,21 @@ with(data, {
 
 ## DESCRIPTIVE STATISTICS
 
+##  PLOTS
+plot_memo_bpd <- function (data=data_final_bl_scales, va1 = BPD, va2 = PANAS.t1) {
+  plot_bpd <-  ggplot(data, aes(x=va1, y=va2, color=Group_affect)) +
+    geom_point() + 
+    #geom_smooth()
+    theme_light() +
+    scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
+    labs(color = "Group affect", x="Borderline Personality Disorder", y="Affect (PANAS)")
+  return(plot_bpd)
+}
+  
+plot_memo_bpd()
+  
+  
 
-  
-  
-  
-  
-  
 
 
 

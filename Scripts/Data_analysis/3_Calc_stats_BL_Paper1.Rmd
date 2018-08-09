@@ -2,3 +2,91 @@
 title: "calculated stats baseline Paper1"
 output: html_document
 ---
+
+```{r}
+# setwd("/home/aniko/R/Memory-and-BPD")
+
+source("../functions_bpd_memo.R")
+
+# load packages
+packages <- c("ggplot2", "tidyverse", "lubridate", "data.table", "psych", "nortest")
+load_my_packages(packages)
+
+```
+
+```{r get_data, eval=T, echo=F}
+data_final_bl_scales <- read.csv2("../../Data/data_final_bl_scales2.csv")
+
+```
+
+```{r normality_check, eval=T, echo=T}
+scales_continous <- c("BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
+            "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2")
+data_scales <- data_final_bl_scales[, scales_continous]
+
+ad.test(data_final_bl_scales$BPD_screen)$statistic[[1]]
+
+
+df_normal_distribution <- data.frame("W" = numeric(), "p_W" = numeric(), 
+                         "AD" = numeric(), "p_AD" = numeric())
+for (i in 1:(ncol(data_scales)-1)) {
+  columns <- names(data_scales[i])
+  shapiroResult <- shapiro.test(data_scales[,i])
+  ADResult <- ad.test(data_scales[,i])
+  newRow <- list(shapiroResult$statistic[[1]], 
+                 shapiroResult$p.value[[1]], 
+                 ADResult$statistic[[1]], 
+                 ADResult$p.value[[1]])
+  df_normal_distribution[names(data_scales[i]), ] <- newRow
+  }
+
+print(round(df_normal_distribution, 2))
+
+```
+
+
+```{r check_manipulation_group_PANAS, evel=T, echo=T}
+# this is the "official" measure
+group_diff <- aov(PANAS.t1 ~ Group_affect, data=data_final_bl)
+summary(group_diff)
+
+# out of interest, I am testing two other scales (positive-only and negative-only)
+group_diff_neg <- aov(PANAS_NEG.t1 ~ Group_affect, data=data_final_bl)
+summary(group_diff_neg)
+
+group_diff_pos <- aov(PANAS_POS.t1 ~ Group_affect, data=data_final_bl)
+summary(group_diff_pos)
+
+```
+```{r plot, eval=T, echo=T}
+titles <- c("")
+plot_bpd_panas <-  ggplot(data_final_bl_scales, aes(x=BPD, y=PANAS.t1, color=Group_affect)) +
+  geom_point() + 
+  geom_smooth() +
+  theme_light() +
+  scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
+  labs(color = "Group affect", x="Borderline Personality Disorder", y="Affect (PANAS)")
+plot_bpd_panas
+  
+plot_bpd_cesd.t1 <-  ggplot(data_final_bl_scales, aes(x=BPD, y=CESD.t1, color=Group_affect)) +
+  geom_point() + 
+  geom_smooth() +
+  theme_light() +
+  scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
+  labs(color = "Group affect", x="Borderline Personality Disorder", y="Mood (PANAS)")
+plot_bpd_cesd.t1
+
+plot_bpd_extremity <-  ggplot(data_final_bl_scales, aes(x=BPD, y=EXTR, color=Group_affect)) +
+  geom_point() + 
+  geom_smooth() +
+  theme_light() +
+  scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
+  labs(color = "Group affect", x="Borderline Personality Disorder", y="Extremity of Response")
+plot_bpd_extremity  
+
+
+
+```
+
+

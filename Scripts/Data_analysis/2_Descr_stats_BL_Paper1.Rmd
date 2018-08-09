@@ -8,8 +8,11 @@ output: html_document
 source("../functions_bpd_memo.R")
 
 # load packages
-packages <- c("ggplot2", "tidyverse", "lubridate", "data.table")
+packages <- c("ggplot2", "tidyverse", "lubridate", "data.table", "psych")
 load_my_packages(packages)
+
+# user-set options
+overwrite_data = TRUE  # if TRUE, then the final data will be saved (overwritten)
 
 ```
 
@@ -22,23 +25,23 @@ cols_to_factor <- c("gender.sc", "gender.t1", "edu_years_compl.t1", "edu_highest
                     "medication.t1", "diagn_bpd.t1")
 for (i in cols_to_factor) {
   data_final[, i] <- as.factor(data_final[, i]) 
-  }
+}
 
 levels(data_final_bl$gender.sc) <- c("1"="female", "2"="male", "3"="other", "4"="I don't want to tell")
 levels(data_final_bl$gender.t1) <- c("1"="female", "2"="male", "3"="other", "4"="I don't want to tell")
 levels(data_final_bl$edu_highest.t1) <- c("0"="No formal education", "1"="Primary school (or equivalent)", 
-                                       "2"="Secondary/high school (or equivalent)", "3"="Vocational school (or equivalent)", 
-                                       "4"="Undergraduate school/BA degree (or equivalent)", "5"="Graduate school/MA degree (or equivalent)", 
-                                       "6"="PhD/MBA or similar")
+                                          "2"="Secondary/high school (or equivalent)", "3"="Vocational school (or equivalent)", 
+                                          "4"="Undergraduate school/BA degree (or equivalent)", "5"="Graduate school/MA degree (or equivalent)", 
+                                          "6"="PhD/MBA or similar")
 levels(data_final_bl$edu_years_compl.t1) <- c("1" = "4 years or less",	"2" =	"5-8 years", 	"3" =	"9-12 years", 
-                                           "4" = "12-17 years", "5" = "17-20 years", "6" =	"more than 20 years")
+                                              "4" = "12-17 years", "5" = "17-20 years", "6" =	"more than 20 years")
 levels(data_final_bl$edu_highest.t1) <- c("0" = "No formal education", "1" =	"Primary school (or equivalent)", 
-                                       "2" =	"Secondary/high school (or equivalent)", "3" =	"Vocational school (or equivalent)", 
-                                       "4" =	"Undergraduate school/BA degree (or equivalent)", "5" =	"Graduate school/MA degree (or equivalent)", 
-                                       "6" =	"PhD/MBA or similar")
+                                          "2" =	"Secondary/high school (or equivalent)", "3" =	"Vocational school (or equivalent)", 
+                                          "4" =	"Undergraduate school/BA degree (or equivalent)", "5" =	"Graduate school/MA degree (or equivalent)", 
+                                          "6" =	"PhD/MBA or similar")
 levels(data_final_bl$SES_subj.t1) <- c("poorest" =	"Among the poorest", "poorer" =	"Poor", "poor" = "Below average", 
-                                    "average" = "Average", 
-                                    "rich" = "Above the average",  "richer" =	"Wealthy", "richest"	= "Among the wealthiest")
+                                       "average" = "Average", 
+                                       "rich" = "Above the average",  "richer" =	"Wealthy", "richest"	= "Among the wealthiest")
 levels(data_final_bl$work.t1) <- c("1" = "yes, full-time", "2" = "yes, part-time", "3" = "yes, less than part time", "4" = "no")
 levels(data_final_bl$study.t1) <- c("1" = "no", "2" = "yes")
 levels(data_final_bl$relationship.t1) <- c("1" = "yes", "2" = "no", "3" = "other", "4" = "I don't want to tell")
@@ -46,11 +49,12 @@ levels(data_final_bl$relationship_qual.t1) <- c("1" = "married", "2" = "living t
 levels(data_final_bl$English_first.sc) <- c("1" = "yes", "2" = "no")
 levels(data_final_bl$English_first.t1) <- c("1" = "yes", "2" = "no")
 levels(data_final_bl$English_level.sc) <- c("1" = "very strong (close to native)", "2" = "strong (fluent)", "3" = "medium (I speak okay)", 
-                                         "4" = "weak (I only speak a little)", "5" = "very weak" )
+                                            "4" = "weak (I only speak a little)", "5" = "very weak" )
 levels(data_final_bl$English_level.t1) <- c("1" = "very strong (close to native)", "2" = "strong (fluent)", "3" = "medium (I speak okay)", 
-                                         "4" = "weak (I only speak a little)", "5" = "very weak" )
+                                            "4" = "weak (I only speak a little)", "5" = "very weak" )
 levels(data_final_bl$medication.t1) <- c("1" = "Yes", "2" = "No")
 levels(data_final_bl$diagn_bpd.t1) <- c("1" = "Yes", "2" = "No")
+
 
 ```
 
@@ -76,7 +80,6 @@ table_descr_demogr <- list(
   "Borderline diagnosis?" = round(prop.table(table(data_final_bl$diagn_bpd.t1))*100, 2)
   )
 
-table_descr_demogr
 
 # group assigment 
 table(data_final_bl$Group.t1)
@@ -110,9 +113,9 @@ data_final_bl[, "PANAS_NEG.t1"] <- rowSums(data_final_bl[, panas_negative_items]
 data_final_bl[, "PANAS.t1"] <- (data_final_bl[, "PANAS_NEG.t1"] - data_final_bl[, "PANAS_POS.t1"])
 
 # PERSONALITY: IPIP 20 items, x5 response, 5 scales, each range 
-bfi_items_recode <- colnames(data_final_bl[, grep("^ipip_.+[0-9]R", colnames(data_final), value=F)])
+bfi_items_recode <- colnames(data_final_bl[, grep("^ipip_.+[0-9]R", colnames(data_final_bl), value=F)])
 data_final_bl[, bfi_items_recode] <- (6 - data_final_bl[, bfi_items_recode])
-setnames(data_final, names(data_final_bl[, bfi_items_recode]), gsub(pattern="R", replacement="", names(data_final_bl[, bfi_items_recode])))
+setnames(data_final_bl, names(data_final_bl[, bfi_items_recode]), gsub(pattern="R", replacement="", names(data_final_bl[, bfi_items_recode])))
 
 # compute the scores for the items:
 data_final_bl$IPIP_openness <- rowSums(data_final_bl[, grep("^ipip_agree", names(data_final_bl), value=T)], na.rm=F)
@@ -135,6 +138,22 @@ data_final_bl$BPD_abs2 <- rowSums(data_final_bl[, grep("^bpd_absExtra_+", colnam
 lec_items.t1 <- c(grep("lec_.+.t1$", names(data_final_bl), value=T))
 data_final_bl$LEC_positive.t1 <- ifelse(data_final_bl[ , lec_items.t1] == "1" | data_final_bl[ , lec_items.t1] == "2", T, F)
 
+scales <- c("Group_affect", "LEC_positive.t1", # categoricals
+            "BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
+            "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2")
+
+## EXTREMITY OF THE RESPONSE
+bfi_items <- colnames(data_final_bl[, grep("^ipip_", colnames(data_final_bl), value=F)])
+# extr_items <- paste0(rep("extr_", 20), seq(1:20))
+
+for (i in bfi_items) {
+  data_final_bl[, paste0("extr_", i)] <- recode(data_final_bl[, i], "1" = 2, "2" = 1, "3" = 0, "4" = 1, "5" = 2)
+  }
+
+data_final_bl$EXTR <- rowSums(data_final_bl[, grep("extr_", colnames(data_final_bl), value=T)], na.rm=F)
+
+
 ```
 
 
@@ -146,23 +165,33 @@ data_final_bl$LEC_positive.t1 <- ifelse(data_final_bl[ , lec_items.t1] == "1" | 
 
 
 
-```{r describe_scales}
-scales <- c("BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
+```{r describe_scales, eval=T, echo=T}
+scales_continous <- c("BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
             "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
-            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2")
-data_scales <- data_final_bl[, scales]    
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2", "EXTR")
+data_scales_continous <- data_final_bl[, scales_continous]    
 
 descriptive_scales <- data.frame("Mean" = numeric(), "SD" = numeric(), "min" = numeric(), "max" = numeric())
-for (i in 1:length(names(data_scales))) {
-  newRow <- list(mean(data_scales[, i], na.rm=TRUE),
-      sd(data_scales[, i], na.rm=TRUE),
-      min(data_scales[, i], na.rm=TRUE),
-      max(data_scales[, i], na.rm=TRUE))
-      descriptive_scales[names(data_scales[i]), ] <-  newRow
+for (i in 1:length(names(data_scales_continous))) {
+  newRow <- list(mean(data_scales_continous[, i], na.rm=TRUE),
+      sd(data_scales_continous[, i], na.rm=TRUE),
+      min(data_scales_continous[, i], na.rm=TRUE),
+      max(data_scales_continous[, i], na.rm=TRUE))
+      descriptive_scales[names(data_scales_continous[i]), ] <-  newRow
   }
 print(round(descriptive_scales, 2))
   
 ```
 
+```{r save_final_data}
+
+# keep baseline data only
+data_final_bl_scales <-  data_final_bl[,grep(".+.t1$|session|.+.sc$|BPD|IPIP|lec_|Group_affect", names(data_final_bl), value=T)]
+
+## save final  data
+if (overwrite_data) {
+  write.csv2(data_final_bl_scales, file="../../Data/data_final_bl_scales2.csv")
+}
 
 
+```
