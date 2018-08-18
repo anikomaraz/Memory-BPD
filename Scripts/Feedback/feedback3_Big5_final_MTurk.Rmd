@@ -173,6 +173,8 @@ points(c(unlist(num_ci)-0.5, NA), col = "#fddbc7", pch = 19, cex = 2)
 
 ```
 
+_Image not displaying? Try: (1) unblocking "display images" at your e-mail provider, (2) forward the email to another email address, or (3) use a different browser._
+
 <br>
 
 ### What do the traits mean? 

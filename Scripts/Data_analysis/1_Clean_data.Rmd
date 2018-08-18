@@ -10,7 +10,7 @@ source("../functions_bpd_memo.R")
 source("../not_approved_screening_sessions.R")
 
 # load packages
-packages <- c("ggplot2", "tidyverse", "lubridate", "data.table", "here")
+packages <- c("ggplot2", "tidyverse", "lubridate", "data.table", "here", "rjson")
 load_my_packages(packages)
 
 # user-defined options
@@ -37,6 +37,30 @@ data_time <- bind_rows(data_t1time, data_t1time_mturk)
 anonymize_data()  #returns data_raw
 
 ```
+
+```{r geolocation, eval=T, echo=T}
+# register at ipstack to obtain your own access key
+my_access_key = "f19969715c051a462fdd16022154736b"
+my_access_key2 = "6ddec55b4e488f4e3dac2ea3ca5b39c8"
+
+# access the geolocation via ip address (using ipstatic.com, a free service)
+get_geo_ip <- function(ip) {
+  url <- paste(c("http://api.ipstack.com/", ip, "?access_key=", my_access_key), collapse='')
+  geolocation <- fromJSON(readLines(url, warn=FALSE))
+    #geolocation <- readLines(url, warn = F)
+  return(geolocation$country_code)
+    }   
+
+# data_ip <- data_raw[!is.na(data_raw$ip_address.sc),]
+data_ip <- data_ip[lapply(data_ip$ip_address.sc, str_length) > 0L,]
+
+# get the country code for each ip address
+data_ip$ip_country_code <- sapply(data_ip$ip_address.sc, get_geo_ip)
+data_ip$ip_country_code_correct <- 
+  
+
+```
+
 
 ```{r remove_data1, eval=T, echo=F}
 ## remove duplicate rows (and keep only the first "attempt" to fill out the survey):
@@ -147,6 +171,14 @@ data_final_long$att_check_item_errors_t1_t4 <- calculate_att_check_item_errors_t
 data_final_long$att_check_sum_t1_t4 <- rowSums(data_final_long[, c("att_check_item_errors_t1_t4", "att_check_video_errors", 
                                                          "vid1_too_short", "vid2_too_short")])
 
+# check errors by session
+att_check_items_t1_t4 <- c("session", 
+                           "att_check_sum_t1_t4", 
+                           "att_check_item_errors_t1", "att_check_video_errors", "vid1_too_short", "vid2_too_short",    # @t1
+                           "voucher_yes_no.scP")  # Would you like to receive the $10 voucher? where 1=yes, 2=no
+data_att_check_t1_t4 <- data_final_long[, att_check_items_t1_t4]
+data_att_check_t1_t4[data_att_check_t1_t4$session == "AYfR-Zd4pJo7vF3Ru6k6IIFBViGrRYwjiGRv62n5rPD2KRYztpRZdhDGMG8w-8af", ]
+
 # clear all helper data, but the final
 # rm(list=setdiff(ls(), "data_final"))
  
@@ -200,6 +232,9 @@ exclude_errors_long
 ```
 
 ```{r save_final_data}
+# remove IP address before publishing data
+data_final_bl %>% select(-starts_with("ip_address"))
+data_final_long %>% select(-starts_with("ip_address"))
 
 # keep baseline data only
 data_final_bl <-  data_final_bl[, c(grep(".+.t1$", names(data_final_bl), value=T), 

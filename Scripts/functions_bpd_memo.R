@@ -1,5 +1,4 @@
 
-setwd("/home/aniko/R/Memory-and-BPD/Scripts/Data_analysis")
 
 library(tidyverse)
 
@@ -7,7 +6,7 @@ library(tidyverse)
 load_my_packages <- function(package){
   new.package <- packages[!(package %in% installed.packages()[, "Package"])]
   if (length(new.package)) 
-    install.package(new.package, dependencies = TRUE)
+    install.packages(new.package, dependencies = TRUE)
   sapply(package, require, character.only = TRUE)
 }
 
@@ -26,7 +25,7 @@ cols_to_character <- c("shown_relative.t1", "answered_relative.t1")
 cols_to_numeric <- c("answered_relative.t1")
 
 # get databases from facebook 
-get_bpdMemo_raw_data <- function(my_version="180726") {
+get_bpdMemo_raw_data <- function(my_version="180726", dataoutput=mturk) {
   
     # pull databases 
     data_sc <- read.csv2(paste0("../../Data/Raw_data/screen_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
@@ -66,9 +65,9 @@ get_bpdMemo_raw_data <- function(my_version="180726") {
       data_raw[ ,i] <- as.integer(data_raw[, i])
     }
     
-    data_t1time <- data_t1time[lengths(data_t1time$session) > 0L,]
+    data_t1time <- data_t1time[str_length(data_t1time$session) > 0L,]
     
-    data_raw <<- data_raw
+    dataoutput <<- data_raw
     data_t1time <<- data_t1time
   }
 
@@ -78,13 +77,13 @@ get_bpdMemo_raw_data <- function(my_version="180726") {
 get_bpdMemo_raw_data_mturk <- function(my_version="180806") {    
   
   # pull databases 
-  data_sc_mturk <- read.csv(paste0("../../Data/Raw_data/screen_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_scP_mturk <- read.csv(paste0("../../Data/Raw_data/screen_positive_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t1_mturk <- read.csv(paste0("../../Data/Raw_data/part1_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t2_mturk <- read.csv(paste0("../../Data/Raw_data/part2_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t3_mturk <- read.csv(paste0("../../Data/Raw_data/part3_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t4_mturk <- read.csv(paste0("../../Data/Raw_data/part4_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t1time_mturk <- read.csv(paste0("../../Data/Raw_data/part1_MTurk_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_sc_mturk <- read.csv(paste0("./Data/Raw_data/screen_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_scP_mturk <- read.csv(paste0("./Data/Raw_data/screen_positive_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t1_mturk <- read.csv(paste0("./Data/Raw_data/part1_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t2_mturk <- read.csv(paste0("./Data/Raw_data/part2_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t3_mturk <- read.csv(paste0("./Data/Raw_data/part3_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t4_mturk <- read.csv(paste0("./Data/Raw_data/part4_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_t1time_mturk <- read.csv(paste0("./Data/Raw_data/part1_MTurk_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
   
 
   ## add a suffix, so that variables do not mix when merged into one dataframe
@@ -116,7 +115,7 @@ get_bpdMemo_raw_data_mturk <- function(my_version="180806") {
       data_raw_mturk[ ,i] <- as.integer(data_raw_mturk[, i])
     }
     
-    data_t1time_mturk <- data_t1time_mturk[lengths(data_t1time_mturk$session) > 0L,]
+    data_t1time_mturk <- data_t1time_mturk[str_length(data_t1time_mturk$session) > 0L,]
     
     for (i in cols_to_character) {
       data_t1time_mturk[ ,i] <- as.character(data_t1time_mturk[, i])
@@ -125,6 +124,7 @@ get_bpdMemo_raw_data_mturk <- function(my_version="180806") {
     data_raw_mturk <<- data_raw_mturk
     data_t1time_mturk <<- data_t1time_mturk
   }
+
 
 
 ## CONVERT VARIABLES
@@ -140,7 +140,7 @@ convert_integer_to_character <- function(my_vars, data) {
 ## ANONYMISE
 anonymize_data <- function() {
   data_raw <- data_raw %>% dplyr::select(-starts_with("server_")) %>%
-  select(-starts_with("ip_address")) %>%
+  # select(-starts_with("ip_address")) %>%
   select(-starts_with("ip.")) %>%
   select(-starts_with("browser.")) %>%
   select(-starts_with("nickname")) %>% select(-starts_with("email"))
@@ -288,17 +288,17 @@ with(data, {
 ## DESCRIPTIVE STATISTICS
 
 ##  PLOTS
-plot_memo_bpd <- function (data=data_final_bl_scales, va1 = BPD, va2 = PANAS.t1) {
-  plot_bpd <-  ggplot(data, aes(x=va1, y=va2, color=Group_affect)) +
-    geom_point() + 
-    #geom_smooth()
-    theme_light() +
-    scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
-    labs(color = "Group affect", x="Borderline Personality Disorder", y="Affect (PANAS)")
-  return(plot_bpd)
-}
-  
-plot_memo_bpd()
+# plot_memo_bpd <- function (data=data, va1 = BPD, va2 = PANAS.t1) {
+#   plot_bpd <-  ggplot(data, aes(x=va1, y=va2, color=Group_affect)) +
+#     geom_point() + 
+#     #geom_smooth()
+#     theme_light() +
+#     scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
+#     labs(color = "Group affect", x="Borderline Personality Disorder", y="Affect (PANAS)")
+#   return(plot_bpd)
+# }
+#   
+# plot_memo_bpd()
   
   
 
