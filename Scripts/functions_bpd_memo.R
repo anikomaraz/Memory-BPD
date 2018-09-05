@@ -1,6 +1,7 @@
 
 
 library(tidyverse)
+library(jsonlite)
 
 ## LOAD PACKAGES
 load_my_packages <- function(package){
@@ -34,8 +35,8 @@ get_bpdMemo_raw_data <- function(my_version="180726", dataoutput=mturk) {
     data_t2 <- read.csv2(paste0("../../Data/Raw_data/part2_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
     data_t3 <- read.csv2(paste0("../../Data/Raw_data/part3_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
     data_t4 <- read.csv2(paste0("../../Data/Raw_data/part4_BPDMemo_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-    data_t1time <- read.csv2(paste0("../../Data/Raw_data/part1_BPDMemo_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  
+    data_t1time <- read.csv2(paste0("../../Data/Raw_data/part1_BPDMemo_itemdisplay_", my_version, ".csv"))
+   
     ## add a suffix, so that variables do not mix when merged into one dataframe
     colnames(data_sc) <- paste(colnames(data_sc), "sc", sep=".")
     colnames(data_scP) <- paste(colnames(data_scP), "scP", sep=".")
@@ -66,26 +67,28 @@ get_bpdMemo_raw_data <- function(my_version="180726", dataoutput=mturk) {
     }
     
     data_t1time <- data_t1time[str_length(data_t1time$session) > 0L,]
+    data_t1time$answered_relative.t1 <- as.numeric(data_t1time$answered_relative.t1)
     
-    dataoutput <<- data_raw
+    data_raw <<- data_raw
     data_t1time <<- data_t1time
   }
 
 
 # get databases from mturk
 
-get_bpdMemo_raw_data_mturk <- function(my_version="180806") {    
+# setwd("./Scripts/Data_analysis")
+
+get_bpdMemo_raw_data_mturk <- function(my_version="180821") {    
   
   # pull databases 
-  data_sc_mturk <- read.csv(paste0("./Data/Raw_data/screen_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_scP_mturk <- read.csv(paste0("./Data/Raw_data/screen_positive_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t1_mturk <- read.csv(paste0("./Data/Raw_data/part1_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t2_mturk <- read.csv(paste0("./Data/Raw_data/part2_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t3_mturk <- read.csv(paste0("./Data/Raw_data/part3_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t4_mturk <- read.csv(paste0("./Data/Raw_data/part4_MTurk_", my_version, ".csv"), sep=";", stringsAsFactors = F)
-  data_t1time_mturk <- read.csv(paste0("./Data/Raw_data/part1_MTurk_itemdisplay_", my_version, ".csv"), sep=";", stringsAsFactors = F)
+  data_sc_mturk <- read.csv(paste0("../../Data/Raw_data/screen_MTurk_", my_version, ".csv"), sep=",", stringsAsFactors = F)
+  data_scP_mturk <- read.csv(paste0("../../Data/Raw_data/screen_positive_MTurk_", my_version, ".csv"), sep=",", stringsAsFactors = F)
+  data_t1_mturk <- read.csv(paste0("../../Data/Raw_data/part1_MTurk_", my_version, ".csv"), sep=",", stringsAsFactors = F)
+  data_t2_mturk <- read.csv(paste0("../../Data/Raw_data/part2_MTurk_", my_version, ".csv"), sep=",", stringsAsFactors = F)
+  data_t3_mturk <- read.csv(paste0("../../Data/Raw_data/part3_MTurk_", my_version, ".csv"), sep=",", stringsAsFactors = F)
+  data_t4_mturk <- read.csv(paste0("../../Data/Raw_data/part4_MTurk_", my_version, ".csv"), sep=",", stringsAsFactors = F)
+  data_t1time_mturk <- jsonlite::fromJSON(paste0("../../Data/Raw_data/part1_MTurk_itemdisplay_", my_version, ".json"))
   
-
   ## add a suffix, so that variables do not mix when merged into one dataframe
     colnames(data_sc_mturk) <- paste(colnames(data_sc_mturk), "sc", sep=".")
     colnames(data_scP_mturk) <- paste(colnames(data_scP_mturk), "scP", sep=".")
@@ -138,14 +141,7 @@ convert_integer_to_character <- function(my_vars, data) {
 
 
 ## ANONYMISE
-anonymize_data <- function() {
-  data_raw <- data_raw %>% dplyr::select(-starts_with("server_")) %>%
-  # select(-starts_with("ip_address")) %>%
-  select(-starts_with("ip.")) %>%
-  select(-starts_with("browser.")) %>%
-  select(-starts_with("nickname")) %>% select(-starts_with("email"))
-  data_raw <<- data_raw
-}
+
 
 # ATTENTION CHECK
 calculate_att_check_item_errors_t1 <- function(data = data, 

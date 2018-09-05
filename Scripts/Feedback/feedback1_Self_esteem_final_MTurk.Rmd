@@ -111,7 +111,7 @@ Your score is **`r rses`** out of the possible 30 in total. So how does this com
 
 
 
-```{r plot , eval = TRUE, echo = FALSE, messages = FALSE, warning=FALSE}
+```{r plot, eval = TRUE, echo = FALSE, messages = FALSE, warning=FALSE}
 suppressMessages(data_m <- melt(data_ref))
 data_m$group <- as.factor(c(rep("gender", 2), "break", 
                   rep("age", 6), "break", 

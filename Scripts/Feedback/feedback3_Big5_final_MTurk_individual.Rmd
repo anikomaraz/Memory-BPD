@@ -1,0 +1,244 @@
+---
+title: "Feedback about your personality"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r get data functions, eval = TRUE, echo = FALSE, messages = FALSE, warning=FALSE}
+
+suppressMessages(library(purrr))
+suppressMessages(library(stringr))
+suppressMessages(library(reshape2))
+suppressMessages(library(plyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(ggthemes))
+```
+
+
+```{r functions, include = FALSE}
+
+
+
+get_ci <- function(x, mean = NULL, sd = NULL, 
+                   rel = .9, alpha = 0.05,
+                   char_labels = NULL, return_borders = FALSE){
+  
+  x <- as.numeric(x)
+  scale_mean <- ifelse(is.null(mean), mean(x, na.rm = TRUE), mean)
+  scale_sd <- ifelse(is.null(sd), sd(x, na.rm = TRUE), sd)
+  z <- qt(1-(alpha)/2, df = 1000)
+  se_z <- scale_sd*sqrt(1-rel)*z
+  # ci borders
+  lower.ci.low <- scale_mean - scale_sd - se_z
+  lower.ci.up  <- scale_mean - scale_sd + se_z
+  upper.ci.low <- scale_mean + scale_sd - se_z
+  upper.ci.up  <- scale_mean + scale_sd + se_z
+  ci_borders <- rbind(-Inf, lower.ci.low, lower.ci.up, upper.ci.low, upper.ci.up, Inf)
+  
+  # now assign persons to the CI
+  ind_num_ci <- cut(x = x, breaks = ci_borders, labels = 1:5)
+  # assign verbal lables if required
+  if (!is.null(char_labels)) {
+    ind_chr_ci <- cut(x = x, breaks = ci_borders, labels = char_labels)
+    return <- as.character(ind_chr_ci)
+  } else {
+    return <- as.numeric(ind_num_ci)
+  }
+  
+  if (return_borders) {
+    return <- ci_borders
+  } else {
+    return
+  }
+}
+
+
+
+## ci labels
+ci_labels <- c("below average", "below average to average", "average", "average to above average", "above average")
+
+```
+
+## Dear Participant, 
+
+<br> 
+
+Thank you for filling out the first part of the survey. As per your request, please find below your answers in comparison to other people's results. You will also find some further information about the test, and an explanation of the personality profile. 
+
+<br> <br>
+
+### What is BigFive? 
+
+<br>
+
+The Big Five personality traits (also known as the five factor model of personality<sup>1, 2</sup>) are currently one of the best-established personality factors of our time. Initially, the traits were based on the association of words that people use to describe their own or other people's personality. In the '60s a group of scientists collected adjectives from the dictionary, because they believed that the most important individual differences are encoded in the language, often as a single word. Later this theory, and the existence of the five personality traits was confirmed by extensive scientific research, and until today, remains one of the most popular theories in personality psychology. 
+
+<br>
+
+We know that you are excited to learn about your personality, so here you go, feel free to have a look at your profile: 
+
+<br>
+
+```{r, eval = TRUE, echo = FALSE, messages = FALSE, warning=FALSE}
+data_big5 <- read.csv2("../../Data/Raw_data/part1_MTurk_180820.csv", sep=",")
+# select MTurkers who inquire by session
+data_big5 <- data_big5[data_big5$session == "d9nqrAfeF4KAore_n9wjIjYNTSIfzh5oNhnMJ79krDxNxxmw8B4vIn7syy949xLC", ]
+
+# grep Big5 items only
+data_big5 <- data_big5[, grep("^ipip_", names(data_big5), value=T)]
+
+# recode
+items_bfi_recode <- grep("R$", names(data_big5), value=F)
+data_big5[,items_bfi_recode] <- 6 - data_big5[,items_bfi_recode]
+
+# compute the scores for the items:
+bfi_names <- grep(x = names(data_big5), pattern = "ipip_", value = TRUE) 
+bfi_names <- str_replace_all(bfi_names, "_[0-9]R", "")
+bfi_names <- str_replace_all(bfi_names, "_[0-9]", "")
+uniques <- unique(bfi_names)
+
+scores <- purrr::map(uniques, ~ rowMeans(data_big5[grep(x = names(data_big5), ., value = TRUE)], na.rm = TRUE))
+names(scores) <- uniques
+
+# e, v, g, n, o
+
+### rel, mean, sd from Schmitt et al., 2007 
+bfi_mean <- c(3.48, 3.02, 3.53, 2.88, 3.96)
+bfi_sd <- c(.87, .73, .69, .77, .62)
+bfi_rel <- c(.86, .64, .70, .74, .66)
+
+arg_list <- list(x = as.list(scores),
+                 mean = as.list(bfi_mean),
+                 sd = as.list(bfi_sd),
+                 rel = as.list(bfi_rel))
+numeric_conf <- pmap(.l = arg_list, .f = get_ci)
+
+labels <- ci_labels
+num_ci <- data.frame(numeric_conf)
+verb_ci <- num_ci
+for (i in 1:5) {verb_ci[num_ci == i] <- labels[i]}
+
+e_verbal_ci <- verb_ci[1,1]
+v_verbal_ci <- verb_ci[1,2]
+
+```
+
+
+
+```{r plot, eval = TRUE, echo = FALSE, results=TRUE, messages = FALSE, warning=FALSE}
+
+# plot BFI scores
+par(bg = "#f1eef6", mai = c(2, 1, 1, 1.5))
+
+plot(NA, ylim = c(0, 5), xlim = c(0, 6), bty = "n", axes = FALSE,
+     ylab = "Your score in comparison to \n the American average", xlab = "",
+     main = "Your personality profile")
+rect(0, 0, 6, 1,  col = "#045a8d", lwd = 0)
+rect(0, 1, 6, 2,  col = "#2b8cbe", lwd = 0)
+rect(0, 2, 6, 3,  col = "#74a9cf", lwd = 0)
+rect(0, 3, 6, 4,  col = "#a6bddb", lwd = 0)
+rect(0, 4, 6, 5,  col = "#d0d1e6", lwd = 0)
+# e, v, g, n, o
+xlab <- c("", "Extraversion","Agreeableness","Conscientiousness","Emotionality","Openness","")
+axis(side=1, at=0:6, labels=xlab, cex.axis = 0.8, tick=FALSE, las = 2)
+axis(side=4, at=1:5-0.5,labels=c("below average to\n average", "", "average", "", "average to\n above average"), cex.axis = 0.8, tick=FALSE, line = -1, las = 2)
+
+grid(col="#f1eef6", lty=1)
+points(c(unlist(num_ci)-0.5, NA), col = "#fddbc7", pch = 19, cex = 2)
+
+```
+
+_Image not displaying? Try: (1) unblocking "display images" at your e-mail provider, (2) forward the email to another email address, or (3) use a different browser._
+
+<br>
+
+### What do the traits mean? 
+
+On the "x" axis you can find the five personality traits that were measured by our questionnaire: Extraversion, Agreeableness, Conscientiousness, Emotionality and Openness. 
+
+<br> 
+
+First of all, it is important to remind you that there are no "right answers" or "right personalities". Everyone is different, there are hardly any people with the same personality. To make things even more complicated, people's personalities can slightly change according to their mood or the situation. Your profile above is only a "snapshot" of your personality. Nevertheless, these five traits and your personal score can be quite revealing about individual differences, as you can read below. 
+
+<br>
+
+#### Extraversion*
+
+People who score high on Extraversion, are outgoing, energetic, and they like and need the company of other people. Whenever they are under stress or bored, they will seek social contact with others. Usually, they seek others' company to recover or to recharge their energies in their freetime. On the other hand, people who score low on extraversion (introverts) are reserved, more reflective, and they like spending their "me-time" alone. Extraversion-introversion is a temperament trait, which means that people mostly inherit this trait (tendency) from their biological parents. Extraverts tend to wear more decorative clothes, whereas introverts prefer comfortable outfits<sup>3</sup>. But only a minority of people are extremely high on extraversion and introversion: people are typically somewhere in between the extremities ("average"), or even if one or the other dominates the behaviour (i.e. introversion), people can sometimes behave in the opposite way (i.e. enjoy going out with other people). The American society, from which the norms of this study come, are typically more extraverted than other cultures<sup>4</sup>, for example the United Kingdom, which should also be taken into consideration when you interpret your own results. 
+
+<br>
+
+#### Agreeableness
+Agreeableness, or as also called, friendliness, cooperation or the capacity for compassion is a tendency to be trusting and helpful. People who score high, get a great pleasure out of serving and taking care of others, although they can sometimes be perceived as naive or submissive. People who are low on agreeableness are often competitive, or argumentative, who are difficult to cooperate with, and they usually put their own needs first most of the time. 
+
+<br>
+
+#### Conscientiousness
+People high on Conscientiousness are efficient and organised. They show a lot of self-discipline especially when they are working towards a goal. They like to create plans, which they tend to follow. When taken to the extremes, they are often viewed as stubborn or obsessive. People who score low on conscientiousness are often very flexible and spontaneous, sometimes even unrealiable, and they are at risk of having addiction-related problems (alcohol, drugs, gaming, etc.). 
+
+<br>
+
+#### Emotionality
+Also called "neuroticism", emotionality refers to emotional sensitivity. People scoring *low* on emotionality are emotionally stabile, "cool" people, who have a high degree of control over their emotional reactions. They are often perceived as secure or "down-to-earth". People who score high on emotionality are often emotionally vulnerable people who experience unpleasant emotions easily, such as anxiety and anger, They are often very dynamic people, who are easily agitated. Those who score high are likely to react to a situation with fear, anger, sadness or anxiety. 
+
+<br>
+
+
+#### Openness
+*Openness to experience* - to be more exact - reflects intellectual curiosity and creativity, the ability to think in abstract, complex ways. People who score high on Openness are often highly intelligent. They seek intense experiences and like to challenge their limits. People low on Openness tend to be practical and conventional, and are sometimes perceived as dogmatic or close-minded.
+
+<br> <br>
+
+### Personality *profile*
+Personality traits dynamically interact with each other. This means, that someone who (for example) scores high on extraversion, but low on conscientiousness is not simply likely to have many social contacts, but is also more likely to have criminal tendencies. On the other hand, introverted-conscientious people are reliable and often hard-working. It is easy to see that there are many combinations among the five traits that constructs are personalities. If you would like to have a more in-depth feedback on your personality, which reflects interaction between individual traits, then we recommend using the [Myers-Briggs personality questionnaire](http://www.myersbriggs.org/my-mbti-personality-type/take-the-mbti-instrument/) (questionnaires and feedback are available free of charge). 
+
+<br> <br>
+
+### Implications
+Individual differences are - to some degree - determined by biological factors, which means that they are inherited from our parents and have phisical traces for example in the brain. Nevertheless, these traits are largely influenced by environmental factors, so the way you were brought up, or the experiences you have had for example with other people. These personality traits are so pervasive, that they even lead to differences in taste preference: impulsive people, and those low on Openness prefer sweet taste more than non-impulsive people<sup>5</sup>. The Big Five personality test can also be successfully used in other fields of life, such as selecting successful teams at a company<sup>6</sup>, or selecting the right people for the right job (for example people who score high on Conscientiousness and low on Emotionality might be the best candidate for monotonous jobs or jobs that require a lot of attention). 
+
+<br> <br>
+
+### Concluding remarks
+The above profil is simply a brief feedback about your personality, at the present moment, so that you can understand how your key personality traits work together to make you the person you are. Simply being aware of your profile can help you better cope with your behavioural tendencies. Or you may want to work toward changing one or the other trait. It is up to you. 
+
+<br> <br>
+
+### Further reading
+If you are interested, you can read some further literature on the [BigFive](https://en.wikipedia.org/wiki/Big_Five_personality_traits) questionnaire, about [Extra-Intraversion](https://en.wikipedia.org/wiki/Extraversion_and_introversion) or about [personality research](https://www.personality-project.org/). 
+
+<br> <br>
+
+### Any questions? Just reply to this e-mail directly to reach us directly. 
+
+
+<br>
+
+## Thank you again for participating. We hope that you have found this feedback useful and informative. Have a nice day!
+
+<br>
+
+#### The Research Team
+
+<br>
+
+<img src="https://www.hu-berlin.de/de/hu-intern/design/downloads/logo/siegel/husiegel-bw-klein.png" alt="" style="width: 200px;" align="left"> <img src="http://www.aen-online.com/aen/images/74.gif" alt="" style="width: 200px; " align="right">
+
+<br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br>
+
+
+### References
+*Are you wondering which spelling is correct: ExtrAversion or ExtrOversion? Folklore has it that when Carl Jung (a very influential psychologist who lived in the beginning of the 20th century) was once asked which was the correct spelling, Jung's secretary replied: "Dr. Jung says it's ExtrAversion, because ExtrOversion is just bad latin." Even though ExtrOversion is more common in the USA today, and an equally correct and accepted way of spelling, we prefer to use "ExtrAversion" in this text. 
+
+<br>
+
+<sup>1</sup>Tupes, E.C., & Christal, R.E. (1961). Recurrent Personality Factors Based on Trait Ratings. Technical Report ASD-TR-61-97, Lackland Air Force Base, TX: Personnel Laboratory, Air Force Systems Command
+<sup>2</sup>Goldberg, L. R. (1993). "The structure of phenotypic personality traits". American Psychologist. 48 (1): 26???34. 
+<sup>3</sup>Sharma, R. S. (1980). "Clothing behaviour, personality, and values: A correlational study". Psychological Studies. 25 (2): 137???42.
+<sup>4</sup>Lynn, R., & Martin, T. (1997). Gender differences in extraversion, neuroticism, and psychoticism in 37 nations. The Journal of Social Psychology, 137(3), 369-373.
+<sup>5</sup>Saliba, A. J., Wragg, K., & Richardson, P. (2009). Sweet taste preference and personality traits using a white wine. Food Quality and Preference, 20(8), 572-575.
+<sup>6</sup>Kichuk, S. L., & Wiesner, W. H. (1997). The big five personality factors and team performance: implications for selecting successful product design teams. Journal of Engineering and Technology Management, 14(3-4), 195-221.
+
+

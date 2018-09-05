@@ -2,6 +2,10 @@
 .RData
 .Ruserdata
 .Rproj 
+
 Raw_data/
 MTurk_batch/
+Data_payment/
+
 .Rproj.user
+.ipstack_key.R

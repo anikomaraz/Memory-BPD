@@ -1,0 +1,205 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+```{r load_packages, eval = TRUE, echo = FALSE, messages = FALSE, warning=FALSE}
+
+online = FALSE
+
+suppressMessages(library(purrr))
+suppressMessages(library(stringr))
+suppressMessages(library(reshape2))
+suppressMessages(library(plyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(ggthemes))
+suppressMessages(library(data.table))
+
+```
+
+
+
+```{r data, eval = TRUE, echo = FALSE, messages = FALSE, warning=FALSE}
+
+data_SE <- read.csv2("../../Data/Raw_data/part4_MTurk_180820.csv", sep=",")
+# select MTurkers who inquire by session
+data_SE <- data_SE[data_SE$session == "pCawP_aGjxTJHZopQWvm8cLdU_CtSPpivCOx0gmJNa7dJn5lLCJ7FS6XwFTFz9uS", ]
+data_SE <- data_SE[, grep("^rses_", names(data_SE), value=T)]
+
+
+# transform values
+rses_items <- grep("^rses_", names(data_SE), value=T)
+data_SE[,rses_items] <- data_SE[,rses_items] -1   #in the standard (reference) used to generate the plot, scoring 0 to 3 was used
+rses_reverse <- grep(x = names(data_SE), pattern = "R$", value = TRUE) 
+data_SE[,rses_reverse] <- 3 - data_SE[,rses_reverse]  # when coding, 1=disagree, and 4=agree 
+
+# compute the scores for the items:
+
+rses <- sum(data_SE)
+```
+
+
+```{r}
+# creat reference data frame (with means) from Sinclair et al., 2010
+# Gender
+data_ref <- data.frame(
+  22.43, #men
+  22.79, #women
+  rses, #empty
+  19.67, #18-25ys
+  22.28,# 26-35
+  23.40, #36-45
+  23.17,  #46-55
+  22.70, #56-65
+  24.62, #66+
+  rses, #empty
+  20.78, # high school grad or higher
+  24.26, # more than 4 years college
+  24.24, # 4-year college
+  24.07, #some college
+  rses, #empty
+  rses, 
+  rses, #empty
+  rses, #empty
+  rses #empty
+)
+names(data_ref) <- c("men", "women", "", 
+                     "18-25ys", "26-35ys", "36-45ys", "46-55ys", "56-65ys", "66+ys", " ", 
+                     "high school or higher", "more than 4ys college", "4-year college", "some college", "  ", 
+                     "Your score", "    ", "     ", "      ")
+```
+
+## Dear Participant, 
+
+<br> 
+
+Thank you for filling out the first part of the survey. As per your request, please find below your answers on self-esteem in comparison to other people's results. You can also read some further information about this test, and a brief explanation of the results. 
+
+<br> <br>
+
+### What is self-esteem? 
+
+<br>
+
+Self-esteem is a person's subjective evaluation and attitude about his or her own worth. Some people believe that they are worth less than other people (they have very low self-esteem), whereas others believe that they are just as worthy, or even more, than others (they have high self-esteem). Very high self-esteem can be a sign of narcissism, whereas people with very low self-esteem are prone to develop anxiety and depression. If you feel that you would like to change the way you feel about yourself, then you would probably benefit from psychological help. 
+
+<br>
+
+Your score is **`r rses`** out of the possible 30 in total. So how does this compare to other people's results?  
+
+<br>
+
+
+
+
+```{r plot, eval = TRUE, echo = FALSE, messages = FALSE, warning=FALSE}
+suppressMessages(data_m <- melt(data_ref))
+data_m$group <- as.factor(c(rep("gender", 2), "break", 
+                  rep("age", 6), "break", 
+                  rep("education", 4), "break", 
+                  "Your score", 
+                  rep("break", 3)))
+group_col <- c("gender" = "#009E73", 
+               "age" = "#D55E00", 
+               "education"="#0072B2", 
+               "break"="transparent", 
+               "Your score" = "#000000")
+
+ggplot() +
+  geom_col(data=data_m, aes(y=value, x=variable, fill=group), stat="identity") +
+      #geom_point(data=data_m, aes(x=variable, y=value, color=group), show.legend=F, size=5, shape=18) +
+  geom_hline(yintercept = data_ref$'Your score', x=15, color=group_col[[5]]) +
+  geom_label(label="Your score", aes(x=length(data_m$variable)-1, y=data_ref$'Your score' +1), fill="#F0E442") +
+  theme_fivethirtyeight() +
+  coord_cartesian(ylim=c(min(data_m$value - 5), max(data_m$value + 5))) +
+  scale_fill_manual(values=group_col) +
+  theme(axis.text.x = element_text(angle = 90, hjust=1, vjust=0.3, size=11), legend.position = "none", 
+        panel.background = element_rect(fill = "white"))  
+      # annotate("text", x=2, y=min(data_m$value-6), label="Gender", alpha=1) 
+    
+  
+
+```
+
+### Your results
+
+<br>
+  
+```{r eval = TRUE, echo = FALSE, messages = FALSE, warning=FALSE}
+highSE <- "Your score indicates, that you have a **high self-esteem**. People high in self-esteem claim to be more likable and attractive, and make better impressions on others than people with low self-esteem. You probably think of yourself as someone more worthy than people around you. In general people with a lot of self-love are rarely trapped into relationships, where they are the weaker person, but they often feel entitled to more than others do, which can be offensive to other people. High self-esteem makes people more likely to speak their mind. An unwanted consequence of high self-esteem may be that you find it challenging to deeply connect with other people, for example to have fulfilling friendships or rewarding and mutual romantic relationships. On the other hand, you are probably good at talking in front of large audiences, and you are a very firm believer of your values and principles. You probably do not spend a long time worrying about your mistakes."
+
+mediumSE <- "Your score indicates, that your self-esteem is approximately on the same level as other people's self-esteem. This is considered the **'optimal'** level. The level of your self-love is probably enough to recognise and avoid non-symmetric or imbalanced relationships (romantic and others), and use your potential well. You are probably a firm believer of certain values and principles, and do not lose time worrying about things that happened in the past, or will happen in the future. You are also likely to be a good problem solver, and get over your mistakes when needed. People with a healthy level of self-esteem are likely to be happy and cope better with stress than those with a non-optimal level of self-esteem. "
+
+lowSE <- "Your score indicates, that **your self-esteem is lower** than the self-esteem of most other people. Possessing only little self-regard indicates that you fall short of your potential. This may be a sign that you should have a little more self-love, because this would protect you against anxiety and stress. Low self-esteem often leads to high tolerance for disharmonious relationships and higher likelihood for negative mood states, such as sadness and anxiety. If you feel that this is the case, then perhaps you would benefit from psychological help. You may also find useful advise on how to increase your self-esteem below."
+
+    feedback <- 
+    # high SE
+       ifelse(rses >=25, highSE, 
+    # medium SE  
+      ifelse(rses <25 & rses >10, mediumSE, 
+    # low SE
+      ifelse(rses <=10, lowSE)))
+    
+```
+
+`r feedback`  
+
+_Image not displaying? Try: (1) unblocking "display images" at your e-mail provider, (2) forward the email to another email address, or (3) use a different browser._
+
+  
+<br>
+
+### About self-esteem 
+You have probably noticed from the figure above, that people's self-esteem changes with age, and to a lesser extent with gender and education. According to scientific research conducted in a sample of adults representing the population of the USA<sup>1</sup> (this is what you can see in the figure above), the older one is, the higher their self-esteem. Data reveal that women have about the same level of self-esteem as men. On the other hand, people with lower educational background usually have higher self-esteem, than people who have at least a college degree. 
+
+<br>
+
+### How does self-esteem develop? 
+Experiences in a person's life are a major source of how people think about their own worth. In the early years of a child's life, parents have a significant influence on self-esteem and can be considered a main source of positive and negative experiences a child will have<sup>2</sup>. Unconditional love from parents helps a child develop a stable sense of being cared for and respected. On the other hand, harsh parental criticism, abuse or being ignored decrease the child's developing self-worth. These experiences then later translate into adult self-esteem as the child grows older, and mixes with other experiences, for example with feedback from friends or other peers. Together these experiences create one's level of self-esteem (although it varies accross several situations and may change with time).
+
+<br>
+
+### How can you maintain or increase (decrease) your self-esteem to the optimal level? 
+According to the american psychologist, Abraham Maslow (and many others) self-esteem is a basic human need. It reflects the need for respect from others (success, recognition and admiration), and from the self (self-love, self-confidence, self-acceptance), and we all thrive towards a "healthy" or optimal amount of self-worth.
+
+<br>
+
+High levels of mastery (the belief that one is competent and skillful), low risk taking and better health predict high self-esteem. On the other hand, shame is a significant contributor to decreased self-esteem<sup>3</sup>. Therefore if you would like to change the way you feel about yourself,  then be self-compassionate. You will find more specific suggestions of what to do on this [website](https://au.reachout.com/articles/how-to-improve-your-self-esteem).  
+
+<br>
+
+One of the most powerful ways of changing the level of self-esteem is via psychotherapy. It is likely that there are extensive opportunities available in your country, so feel free to pick one. Once in a while *everyone* benefits from psychological support.  
+
+<br>
+
+Interested in reading more? Use this link on [wikipedia](https://en.wikipedia.org/wiki/Self-esteem#cite_note-43). 
+
+<br> 
+
+### Any questions? Just reply to this e-mail to reach us directly. 
+
+<br>
+
+## Thank you again for participating. We hope that you have found this feedback useful and informative! 
+
+<br>
+
+#### The Research Team
+
+<br>
+
+<img src="https://www.hu-berlin.de/de/hu-intern/design/downloads/logo/siegel/husiegel-bw-klein.png" alt="" style="width: 200px;" align="left"> <img src="http://www.aen-online.com/aen/images/74.gif" alt="" style="width: 200px; " align="right">
+
+<br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br>
+  
+  
+  
+### References
+<sup>1</sup>Sinclair, S. J., Blais, M. A., Gansler, D. A., Sandberg, E., Bistis, K., & LoCicero, A. (2010). Psychometric properties of the Rosenberg Self-Esteem Scale: Overall and across demographic groups living within the United States. Evaluation & the health professions, 33(1), 56-80.
+<sup>2</sup>Raboteg-Saric Z.; Sakic M. (2014). "Relations of parenting styles and friendship quality to self-esteem, life satisfaction, & happiness in adolescents". Applied Research in the Quality of Life. 9 (3): 749-765. 
+<sup>3</sup>Gruenewald T.L.; Kemeny M.E.; Aziz N.; Fahey J.L. (2004). "Acute threat to the social self: Shame, social self-esteem, and cortisol activity". Psychosomatic Medicine. 66 (6): 915???924. 
+
+
+  

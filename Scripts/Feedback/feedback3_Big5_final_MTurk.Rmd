@@ -83,34 +83,32 @@ We know that you are excited to learn about your personality, so here you go, fe
 if (online) {
   
   data <- data.frame(
-    part1_MTurk$ipip_extra_1,
-    part1_MTurk$ipip_agree_1,
-    part1_MTurk$ipip_consc_1,
-    part1_MTurk$ipip_neuro_1,
-    part1_MTurk$ipip_open_1,
-    part1_MTurk$ipip_extra_2R,
-    part1_MTurk$ipip_agree_2R,
-    part1_MTurk$ipip_consc_2R,
-    part1_MTurk$ipip_neuro_2R,
-    part1_MTurk$ipip_open_2R,
-    part1_MTurk$ipip_extra_3,
-    part1_MTurk$ipip_agree_3,
-    part1_MTurk$ipip_consc_3,
-    part1_MTurk$ipip_neuro_3,
-    part1_MTurk$ipip_open_3R,
-    part1_MTurk$ipip_extra_4R,
-    part1_MTurk$ipip_agree_4R,
-    part1_MTurk$ipip_consc_4R,
-    part1_MTurk$ipip_neuro_4R,
-    part1_MTurk$ipip_open_4R )
+    as.numeric(part1_MTurk$ipip_extra_1),
+    as.numeric(part1_MTurk$ipip_agree_1),
+    as.numeric(part1_MTurk$ipip_consc_1),
+    as.numeric(part1_MTurk$ipip_neuro_1),
+    as.numeric(part1_MTurk$ipip_open_1),
+    as.numeric(part1_MTurk$ipip_extra_2R),
+    as.numeric(part1_MTurk$ipip_agree_2R),
+    as.numeric(part1_MTurk$ipip_consc_2R),
+    as.numeric(part1_MTurk$ipip_neuro_2R),
+    as.numeric(part1_MTurk$ipip_open_2R),
+    as.numeric(part1_MTurk$ipip_extra_3),
+    as.numeric(part1_MTurk$ipip_agree_3),
+    as.numeric(part1_MTurk$ipip_consc_3),
+    as.numeric(part1_MTurk$ipip_neuro_3),
+    as.numeric(part1_MTurk$ipip_open_3R),
+    as.numeric(part1_MTurk$ipip_extra_4R),
+    as.numeric(part1_MTurk$ipip_agree_4R),
+    as.numeric(part1_MTurk$ipip_consc_4R),
+    as.numeric(part1_MTurk$ipip_neuro_4R),
+    as.numeric(part1_MTurk$ipip_open_4R) )
 
     } else {
-      data <- read.csv("/Users/Diagnostik/Downloads/part1_BPDMemo.csv", sep=",")
-  data <- as.data.frame(data)
+      data <- read.csv2("../../Data/Raw_data/part1_MTurk_180726.csv", sep=";")
   # grep Big5 items only
   data <- data[, grep("^ipip_", names(data), value=T)]
   }
-
 # recode
 items_bfi_recode <- grep("R$", names(data), value=F)
 data[,items_bfi_recode] <- 6 - data[,items_bfi_recode]
@@ -142,7 +140,6 @@ num_ci <- data.frame(numeric_conf)
 verb_ci <- num_ci
 for (i in 1:5) {verb_ci[num_ci == i] <- labels[i]}
 
-
 e_verbal_ci <- verb_ci[1,1]
 v_verbal_ci <- verb_ci[1,2]
 
@@ -150,7 +147,7 @@ v_verbal_ci <- verb_ci[1,2]
 
 
 
-```{r plot , eval = TRUE, echo = FALSE, messages = FALSE, warning=FALSE}
+```{r plot, eval = TRUE, echo = FALSE, results=TRUE, messages = FALSE, warning=FALSE}
 
 # plot BFI scores
 par(bg = "#f1eef6", mai = c(2, 1, 1, 1.5))
