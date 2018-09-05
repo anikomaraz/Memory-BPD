@@ -16,6 +16,7 @@ load_my_packages(packages)
 
 # user-defined options
 overwrite_data = TRUE  # if TRUE, then the final data will be saved (overwritten)
+access_to_identifiable_data = TRUE # if TRUE, then data will contain identifiable information. These files are not available to the public.
 ```
 
 
@@ -25,37 +26,44 @@ overwrite_data = TRUE  # if TRUE, then the final data will be saved (overwritten
 
 
 ```{r get_clean_data, eval=TRUE, echo=FALSE}
-get_bpdMemo_raw_data(my_version="180726") # returns data_raw AND  data_t1time
-get_bpdMemo_raw_data_mturk(my_version="180831") # returns data_raw_mturk AND  data_t1time_mturk
-mturk_full_data <- read.csv2(file="../../Data/Raw_data/mturk_full_data_withIP_180820.csv") # returns mturk data
-
-# format columns, and merge facebook and mturk data (from formr)
-data_raw[, grep("^lec", colnames(data_raw), value=T)] <- sapply(data_raw[, grep("^lec", colnames(data_raw), value=T)], as.character)
-data_raw_mturk[, grep("^lec", colnames(data_raw_mturk), value=T)] <- sapply(data_raw_mturk[, grep("^lec", colnames(data_raw_mturk), value=T)], as.character)
-data_raw <- bind_rows(data_raw, data_raw_mturk)
-
-# merge facebook/mturk data from formr with data from mturk
-data_raw <- full_join(data_raw, 
-                      mturk_full_data[, c("session", "survey_virgin", "source", "screen_attention_check_error")], 
-                      by="session")
-
-# merge facebook and mturk time data (from formr)
-data_t1time_mturk$answered_relative.t1 <- as.numeric(data_t1time_mturk$answered_relative.t1)
-time_vars <-  c("session", "item_name.t1", "answered_relative.t1")
-data_time <- bind_rows(data_t1time[, time_vars], data_t1time_mturk[, time_vars])
-
-## create two versions: full and without variables based on which participants could potentially be identified
-write.csv2(data_raw, "../../Data/Raw_data/data_raw_full_identifiable_180831.csv")
-write.csv2( data_raw[, -grep(c("^ip[.]+|ip_address|^browser.|nickname|^email"), names(data_raw))], "../../Data/data_raw_full_180831.csv")
-write.csv2(data_time, "../../Data/data_raw_full_time_180831.csv")
-
+if (access_to_identifiable_data == TRUE) {
+      get_bpdMemo_raw_data(my_version="180726") # returns data_raw AND  data_t1time
+      get_bpdMemo_raw_data_mturk(my_version="180831") # returns data_raw_mturk AND  data_t1time_mturk
+      mturk_full_data <- read.csv2(file="../../Data/Raw_data/mturk_full_data_withIP_180820.csv") # returns mturk data
+      
+      # format columns, and merge facebook and mturk data (from formr)
+      data_raw[, grep("^lec", colnames(data_raw), value=T)] <- sapply(data_raw[, grep("^lec", colnames(data_raw), value=T)], as.character)
+      data_raw_mturk[, grep("^lec", colnames(data_raw_mturk), value=T)] <- sapply(data_raw_mturk[, grep("^lec", colnames(data_raw_mturk), value=T)], as.character)
+      data_raw <- bind_rows(data_raw, data_raw_mturk)
+      
+      # merge facebook/mturk data from formr with data from mturk
+      data_raw <- full_join(data_raw, 
+                            mturk_full_data[, c("session", "survey_virgin", "source", "screen_attention_check_error")], 
+                            by="session")
+      
+      # merge facebook and mturk time data (from formr)
+      data_t1time_mturk$answered_relative.t1 <- as.numeric(data_t1time_mturk$answered_relative.t1)
+      time_vars <-  c("session", "item_name.t1", "answered_relative.t1")
+      data_time <- bind_rows(data_t1time[, time_vars], data_t1time_mturk[, time_vars])
+      
+      ## create two versions: full and without variables based on which participants could potentially be identified
+      write.csv2(data_raw, "../../Data/Raw_data/data_raw_full_identifiable_180831.csv")
+      write.csv2( data_raw[, -grep(c("^ip[.]+|ip_address|^browser.|nickname|^email"), names(data_raw))], "../../Data/data_raw_full_180831.csv")
+      write.csv2(data_time, "../../Data/data_raw_full_time_180831.csv")
+}
 
 ```
 
 ```{r data_read, eval=T, echo=F}
-data_raw <- read.csv2("../../Data/Raw_data/data_raw_full_identifiable_180827.csv")
-data_time <- read.csv2("../../Data/data_raw_full_time_180827.csv")
+if (access_to_identifiable_data == TRUE) {
+  data_raw_identifiable <- read.csv2("../../Data/Raw_data/data_raw_full_identifiable_180831.csv")
+  data_time <- read.csv2("../../Data/data_raw_full_time_180831.csv")
 
+# get rid of test sessions
+  data_raw_identifiable <- data_raw_identifiable[!data_raw_identifiable$session %in% remove_test_sessions,]
+  data_time$session <- sapply(data_time$session, as.character) 
+  data_time <- data_time[!(data_time$session %in% remove_test_sessions), ]
+}
 ```
 
 
@@ -71,32 +79,36 @@ get_geo_ip <- function(ip) {
   return(geolocation$country_code)
     }   
 
-# data_ip <- data_raw[!is.na(data_raw$ip_address.sc),]
-data_raw <- data_raw[lapply(data_raw$ip_address.sc, str_length) > 0L,]
-
+if (access_to_identifiable_data == TRUE) {
+  data_raw <- data_raw[lapply(data_raw$ip_address.sc, str_length) > 0L,]
+}
 ```
 
 ```{r ip_address_count}
-table(as.data.frame(table(data_raw$ip_address.sc))[,2])
-ip_adress_count <- rle(sort(as.character(data_raw$ip_address.sc)))
-ip_address_data <- data.frame(ip_address=ip_adress_count$values, 
-                              n=ip_adress_count$lengths)
-ip_address_data[ip_address_data$n > 7, ]  # IPs with 20 and 47 entries were my test sessions, IP address starting with "141.". was my phone test session
-ip_9 = c("104.131.19.173", "104.236.70.228")
-data_raw[data_raw$ip_address.sc %in% ip_9, ]
+if (access_to_identifiable_data == TRUE) {
+  table(as.data.frame(table(data_raw_identifiable$ip_address.sc))[,2])
+  ip_adress_count <- rle(sort(as.character(data_raw_identifiable$ip_address.sc)))
+  ip_address_data <- data.frame(ip_address=ip_adress_count$values, 
+                                n=ip_adress_count$lengths)
+  ip_address_data[ip_address_data$n > 7, ]  # IPs with 20 and 47 entries were my test sessions, IP address starting with "141.". was my phone test session
+  ip_9 = c("104.131.19.173", "104.236.70.228")
+  data_raw_identifiable[data_raw_identifiable$ip_address.sc %in% ip_9, ]
+  
+  # score if suspicous
+  ip_largerThanOne <- as.character(ip_address_data[ip_address_data$n >= 2, ]$ip_address)
+  data_raw_identifiable$ip_suspicious <- ifelse(data_raw_identifiable$ip_address.sc %in% ip_largerThanOne, 1, 0)
+  table(data_raw_identifiable$ip_suspicious)
+}
+```
 
-# score if suspicous
-ip_largerThanOne <- as.character(ip_address_data[ip_address_data$n >= 2, ]$ip_address)
-data_raw$ip_suspicious <- ifelse(data_raw$ip_address.sc %in% ip_largerThanOne, 1, 0)
-table(data_raw$ip_suspicious)
+```{r create_nonIdentifiable_data, eval=T, echo=F}
+data_clean <- data_raw_identifiable %>% select(-starts_with("ip_address", "email", "nickname", "browser"))
+
 ```
 
 
-```{r remove_data1, eval=T, echo=F}
-## get rid of test and empty sessions 
-data_clean <- data_raw[!data_raw$session %in% remove_test_sessions,]
-data_time$session <- sapply(data_time$session, as.character) 
-data_time <- data_time[!(data_time$session %in% remove_test_sessions), ]
+```{r count_data, eval=T, echo=F}
+## raw data, without test and empty sessions 
 N1_notest <- length(data_clean$session)
 
 ## remove duplicate rows (and keep only the first "attempt" to fill out the survey):
@@ -137,10 +149,10 @@ N7_sessionfull <- sum(data_clean$session_full)
 ## sample N accross data cleaning
 sample_N <- list(
   "test sessions excluded, no. of people clicking on the website:" = N1_notest, 
-   "all data:" = N2_nodupl, 
-   "participants who were screened:" = N3_noblankscreening, 
+  "all data:" = N2_nodupl, 
+  "participants who were screened:" = N3_noblankscreening, 
   "participants who passed the screening attention check (screening for MTurk only):" = N4_nofailtest, 
-   "participants screened positive" = N5_screenpostive, # baseline data
+  "participants screened positive" = N5_screenpostive, # baseline data
   "participiants with no missing data on T1 (PANAS) meaning they did Part1  (BASELINE)" = N6_nomissing,
   "participants who have full data (t1-t4) (LONGITUDINAL)" = N7_sessionfull) # longitudinal data
 
