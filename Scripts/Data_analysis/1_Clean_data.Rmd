@@ -1,22 +1,29 @@
 ---
 title: "Data_cleaning_MemoryBPD"
 output: html_document
+author: Aniko Maraz
 ---
 
+
 ```{r setup_finetune, include=T, echo=FALSE}
-
-# call helper files
-source("../functions_bpd_memo.R")
-source("../not_approved_screening_sessions.R")
-source("../ipstack_key.R")
-
 # load packages
-packages <- c("ggplot2", "tidyverse", "lubridate", "data.table", "here", "rjson")
+# source(here("Scripts", "functions_bpd_memo.R")) 
+source("../../Scripts/functions_bpd_memo.R")
+packages <- c("ggplot2", "tidyverse", "lubridate", "data.table", "rjson", "here")
 load_my_packages(packages)
 
+
+# call helper files
+# source(here("Scripts", "not_approved_screening_sessions.R")) # contains the test sessions + those who wished to withdraw their data
+# source(here("Scripts", "ipstack_key.R"))  # contains my ipstack pass
+source("../../Scripts/not_approved_screening_sessions.R")
+source("../../Scripts/ipstack_key.R")
+
 # user-defined options
-overwrite_data = TRUE  # if TRUE, then the final data will be saved (overwritten)
+overwrite_data = FALSE  # if TRUE, then the final data will be saved (overwritten)
 access_to_identifiable_data = TRUE # if TRUE, then data will contain identifiable information. These files are not available to the public.
+ip_verification = TRUE # if true, then IP addresses will be checked via ipstack
+
 ```
 
 
@@ -28,8 +35,9 @@ access_to_identifiable_data = TRUE # if TRUE, then data will contain identifiabl
 ```{r get_clean_data, eval=TRUE, echo=FALSE}
 if (access_to_identifiable_data == TRUE) {
       get_bpdMemo_raw_data(my_version="180726") # returns data_raw AND  data_t1time
-      get_bpdMemo_raw_data_mturk(my_version="180831") # returns data_raw_mturk AND  data_t1time_mturk
-      mturk_full_data <- read.csv2(file="../../Data/Raw_data/mturk_full_data_withIP_180820.csv") # returns mturk data
+      get_bpdMemo_raw_data_mturk(my_version="180906") # returns data_raw_mturk AND  data_t1time_mturk
+      #mturk_full_data <- read.csv2(here("Data", "Raw_data", "mturk_full_data_withIP_180820.csv")) # returns mturk data
+      mturk_full_data <- read.csv2("../../Data/Raw_data/mturk_full_data_withIP_180820.csv")
       
       # format columns, and merge facebook and mturk data (from formr)
       data_raw[, grep("^lec", colnames(data_raw), value=T)] <- sapply(data_raw[, grep("^lec", colnames(data_raw), value=T)], as.character)
@@ -41,78 +49,116 @@ if (access_to_identifiable_data == TRUE) {
                             mturk_full_data[, c("session", "survey_virgin", "source", "screen_attention_check_error")], 
                             by="session")
       
-      # merge facebook and mturk time data (from formr)
-      data_t1time_mturk$answered_relative.t1 <- as.numeric(data_t1time_mturk$answered_relative.t1)
-      time_vars <-  c("session", "item_name.t1", "answered_relative.t1")
-      data_time <- bind_rows(data_t1time[, time_vars], data_t1time_mturk[, time_vars])
+     }
+
+if (access_to_identifiable_data == TRUE) {
+## TIME
+# get data from facebook
+      data_t1time <- read.csv2("../../Data/Raw_data/part1_BPDMemo_itemdisplay_180726.csv", stringsAsFactors = F)
+      colnames(data_t1time) <- paste(colnames(data_t1time), "t1", sep=".")
+      names(data_t1time)[names(data_t1time) == "session.t1"] <- "session"
+      data_t1time <- data_t1time[str_length(data_t1time$session) > 0L,]
+      data_t1time$answered_relative.t1 <- as.numeric(data_t1time$answered_relative.t1)
+      data_t1time$shown_relative.t1 <- as.numeric(data_t1time$shown_relative.t1)
+
+# get data from MTurk      
+      data_t1time_mturk <- jsonlite::fromJSON("../../Data/Raw_data/part1_MTurk_itemdisplay_180906.json")
+      colnames(data_t1time_mturk) <- paste(colnames(data_t1time_mturk), "t1", sep=".")
+      names(data_t1time_mturk)[names(data_t1time_mturk) == "session.t1"] <- "session"
+      data_t1time_mturk <- data_t1time_mturk[str_length(data_t1time_mturk$session) > 0L,]
+      # for (i in cols_to_character) {
+      #   data_t1time_mturk[ ,i] <- as.character(data_t1time_mturk[, i])
+      # }
+       
+# merge the two     
+      data_time <- bind_rows(data_t1time, data_t1time_mturk)
+      data_time$created.t1 = as.POSIXct(strptime(data_time$created.t1, "%Y-%m-%d %H:%M:%S"))
+      data_time <- data_time[!is.na(data_time$session), ]
       
-      ## create two versions: full and without variables based on which participants could potentially be identified
-      write.csv2(data_raw, "../../Data/Raw_data/data_raw_full_identifiable_180831.csv")
-      write.csv2( data_raw[, -grep(c("^ip[.]+|ip_address|^browser.|nickname|^email"), names(data_raw))], "../../Data/data_raw_full_180831.csv")
-      write.csv2(data_time, "../../Data/data_raw_full_time_180831.csv")
+# save data
+      if (overwrite_data == TRUE) {
+        write.csv2(data_time, "../../Data/data_raw_full_time_180906.csv")
+      }
 }
 
 ```
 
-```{r data_read, eval=T, echo=F}
+```{r data_read_clear_session, eval=T, echo=F}
 if (access_to_identifiable_data == TRUE) {
-  data_raw_identifiable <- read.csv2("../../Data/Raw_data/data_raw_full_identifiable_180831.csv")
-  data_time <- read.csv2("../../Data/data_raw_full_time_180831.csv")
+  # data_raw_identifiable <- read.csv2(here("Data", "Raw_data", "data_raw_full_identifiable_180906.csv"), stringsAsFactors = F)
+  # data_time <- read.csv2(here("Data", "data_raw_full_time_180906.csv"), stringsAsFactors = F)
+  data_raw_identifiable <- read.csv2("../../Data/Raw_data/data_raw_full_identifiable_180906.csv", stringsAsFactors = F)
+  
+  # get rid of test sessions  
+  data_raw_identifiable <- data_raw_identifiable %>% filter(!session %in% remove_test_sessions)
+  data_raw_identifiable <- data_raw_identifiable[str_length(data_raw_identifiable$session) > 0L, ]
+  data_raw_identifiable <- data_raw_identifiable[str_length(data_raw_identifiable$ip_address.sc) > 0L, ]
+  }
 
-# get rid of test sessions
-  data_raw_identifiable <- data_raw_identifiable[!data_raw_identifiable$session %in% remove_test_sessions,]
-  data_time$session <- sapply(data_time$session, as.character) 
-  data_time <- data_time[!(data_time$session %in% remove_test_sessions), ]
-}
+# read time data
+data_time <- read.csv2("../../Data/data_raw_full_time_180906.csv", stringsAsFactors = F)
+data_time <- data_time[!(data_time$session %in% remove_test_sessions), ]
+data_time <- data_time[str_length(data_time$session) > 0L, ]
+
 ```
 
 
 ```{r geolocation, eval=T, echo=T}
 # register at ipstack to obtain your own access key
-my_access_key = my_access_key3
+my_access_key = my_access_key
 
-# access the geolocation via ip address (using ipstatic.com, a free service)
+# access the geolocation via ip address
 get_geo_ip <- function(ip) {
-  url <- paste(c("http://api.ipstack.com/", ip, "?access_key=", my_access_key), collapse='')
+  url <- paste(c("http://api.ipstack.com/", ip, "?access_key=", my_access_key), collapse="")
   geolocation <- fromJSON(readLines(url, warn=FALSE))
-    #geolocation <- readLines(url, warn = F)
   return(geolocation$country_code)
     }   
 
+if (ip_verification == TRUE) {
 if (access_to_identifiable_data == TRUE) {
-  data_raw <- data_raw[lapply(data_raw$ip_address.sc, str_length) > 0L,]
+ data_raw_identifiable$ip_country <- sapply(data_raw_identifiable$ip_address.sc, get_geo_ip)
+  }
 }
+
+table(data_raw_identifiable$ip_country)
 ```
 
-```{r ip_address_count}
+```{r ip_address_count_flag, eval=T, echo=F}
 if (access_to_identifiable_data == TRUE) {
+  # count how many IP addresses are repeated
   table(as.data.frame(table(data_raw_identifiable$ip_address.sc))[,2])
-  ip_adress_count <- rle(sort(as.character(data_raw_identifiable$ip_address.sc)))
-  ip_address_data <- data.frame(ip_address=ip_adress_count$values, 
-                                n=ip_adress_count$lengths)
-  ip_address_data[ip_address_data$n > 7, ]  # IPs with 20 and 47 entries were my test sessions, IP address starting with "141.". was my phone test session
-  ip_9 = c("104.131.19.173", "104.236.70.228")
-  data_raw_identifiable[data_raw_identifiable$ip_address.sc %in% ip_9, ]
   
-  # score if suspicous
-  ip_largerThanOne <- as.character(ip_address_data[ip_address_data$n >= 2, ]$ip_address)
-  data_raw_identifiable$ip_suspicious <- ifelse(data_raw_identifiable$ip_address.sc %in% ip_largerThanOne, 1, 0)
-  table(data_raw_identifiable$ip_suspicious)
+  # flag suspicious IPs (== used more than once)
+  ips_freq <- as.data.frame(table(data_raw_identifiable$ip_address.sc))
+  ips_multiple <- as.list(ips_freq %>% filter(Freq >1) %>% select(Var1))
+  data_raw_identifiable$ip_more_than_1 <- data_raw_identifiable$ip_address.sc %in% ips_multiple$Var1
+}
+
+```
+
+```{r create_save_nonIdentifiable_data, eval=T, echo=F}
+if (access_to_identifiable_data == TRUE) {
+  data_clean <- data_raw_identifiable[, -grep(c("^ip[.]+|ip_address|^browser.|nickname|^email"), names(data_raw_identifiable))]
+ if (overwrite_data == TRUE) {
+  write.csv2(data_clean, "../../Data/data_clean_180906.csv")
+    }
+}
+
+# save time data
+if (overwrite_data == TRUE) {
+  write.csv2(data_time, "../../Data/data_time_180906.csv")
 }
 ```
 
-```{r create_nonIdentifiable_data, eval=T, echo=F}
-data_clean <- data_raw_identifiable %>% select(-starts_with("ip_address", "email", "nickname", "browser"))
 
-```
+```{r load_count_data, eval=T, echo=F}
+## load final data
+data_clean <- read.csv2("../../Data/data_clean_180906.csv", stringsAsFactors = F)
 
-
-```{r count_data, eval=T, echo=F}
 ## raw data, without test and empty sessions 
 N1_notest <- length(data_clean$session)
 
 ## remove duplicate rows (and keep only the first "attempt" to fill out the survey):
-length(data_clean$session) - length(unique(data_clean$session)) # returns the number of duplicates
 data_clean <- data_clean[!duplicated(data_clean$session), ]
 N2_nodupl <- length(data_clean$session)
 
@@ -121,9 +167,8 @@ data_clean <- data_clean[!is.na(data_clean$bpd_s1.sc),]
 N3_noblankscreening <- length(data_clean$session)
 
 ## get rid of those those who did not pass the screening attention check (screening for MTurk only)
-data_clean <- data_clean[!data_clean$session %in% remove_screen_failed,] 
-data_time <- data_time[!(data_time$session %in% remove_screen_failed), ]
-N4_nofailtest <- length(data_clean$session)
+data_clean <- data_clean[!data_clean$screen_attention_check.sc %in% c("1", "3", "4"),] 
+N4_screen_att_check_passed <- length(data_clean$session)
 
 ## participants who screened positive
 bpd_items <- c("bpd_s1.sc", "bpd_s2.sc", "bpd_s3.sc", "bpd_s4.sc", "bpd_s5.sc", 
@@ -140,21 +185,29 @@ N5_screenpostive <- length(data_clean$session)
 
 ## participants with no missing data on PANAS at t1
 data_clean <- data_clean[!is.na(data_clean$panas_1.t1),]
-N6_nomissing <- length(data_clean$session)
+N6_Part1_compl <- length(data_clean$session)
 
-## filter those who have full data (t1-t4)
+## participants who completed Part 2
+N7_Part2_compl <- sum(!is.na(data_clean$gen_impr_test.t2))
+
+## participants who completed Part 3
+N8_Part3_compl <- sum(!is.na(data_clean$gen_impr_test.t3))
+
+## participants who completed Part 4, meaning they have full data (t1-t4)
 data_clean$session_full <- !is.na(data_clean[,"panas_1.t4"])
-N7_sessionfull <- sum(data_clean$session_full)
+N9_Part4_compl_full <- sum(data_clean$session_full)
 
 ## sample N accross data cleaning
 sample_N <- list(
   "test sessions excluded, no. of people clicking on the website:" = N1_notest, 
-  "all data:" = N2_nodupl, 
+  "duplicates excluded (i.e. those who clicked on the site multiple times):" = N2_nodupl, 
   "participants who were screened:" = N3_noblankscreening, 
-  "participants who passed the screening attention check (screening for MTurk only):" = N4_nofailtest, 
-  "participants screened positive" = N5_screenpostive, # baseline data
-  "participiants with no missing data on T1 (PANAS) meaning they did Part1  (BASELINE)" = N6_nomissing,
-  "participants who have full data (t1-t4) (LONGITUDINAL)" = N7_sessionfull) # longitudinal data
+  "participants who passed the screening attention check (screening for MTurk only):" = N4_screen_att_check_passed, 
+  "participants screened positive" = N5_screenpostive, 
+  "participiants with no missing data on T1 (PANAS) meaning they did Part1  (BASELINE)" = N6_Part1_compl,
+  "participiants with no missing data on T2 (GeneralImpr on Test video) meaning they did Part2" = N7_Part2_compl,
+  "participiants with no missing data on T3 (GeneralImpr on Test video) meaning they did Part3" = N8_Part3_compl,
+  "participants who have full data (t1-t4) (LONGITUDINAL)" = N9_Part4_compl_full) # longitudinal data
 
 sample_N
 
@@ -162,7 +215,55 @@ sample_N
 ```
 
 
-```{r att_check_calculate_baseline, eval=TRUE, echo=FALSE}
+```{r video_watchtime, eval=TRUE, echo=FALSE}
+# get and format time data
+data_time <- read.csv2("../../Data/data_time_180906.csv", stringsAsFactors = F, row.names = "X")
+data_time$created.t1 <- as.POSIXct(strptime(data_time$created.t1, format="%Y-%m-%d %H:%M:%S"))
+
+# tidy data for Video 1 (trial)
+vid1_watch_time <- data_time %>%
+    select(session, item_name.t1, created.t1) %>% 
+    filter(item_name.t1 %in% c("page_after_trialVid", #which is displayed automatically when the participant clicks on Video1 page
+                               "page_after_trialVid_checktest"))  %>% #which is displayed automatically when the participants submits Vid1 page 
+    spread(key=item_name.t1, value=created.t1) 
+
+# tidy data for Video 2 (test)
+vid2_watch_time <- data_time %>%
+    select(session, item_name.t1, created.t1) %>% 
+    filter(item_name.t1 %in% c("page_after_testVid", #which is displayed automatically when the participant clicks on Video2 page
+                               "page_after_testVidCheckQs"))  %>% #which is displayed automatically when the participants submits Vid2 page 
+    spread(key=item_name.t1, value=created.t1) 
+
+# calculate watch time
+vid1_watch_time$vid1_difftime <- difftime(vid1_watch_time$page_after_trialVid_checktest, vid1_watch_time$page_after_trialVid, units = "secs")
+vid2_watch_time$vid2_difftime <- difftime(vid2_watch_time$page_after_testVidCheckQs, vid2_watch_time$page_after_testVid,  units = "secs")
+
+# merge this data with the clean dataset
+data_clean <- data_clean %>% 
+  full_join(vid1_watch_time[, c("session", "vid1_difftime")], by="session") %>% 
+  full_join(vid2_watch_time[, c("session", "vid2_difftime")], by="session") 
+
+# calculate if watch time is less than the length of the video (=error)
+# for Vid1 (same for everyone)
+data_clean$vid1_too_short <- ifelse(data_clean$vid1_difftime > 240 | is.na(data_clean$vid1_difftime), FALSE, TRUE)
+
+# for Vid 2 (one selected randomly from 9 alternatives), numbers indicate the length of the video (in sec)
+data_clean$vid2_too_short <- ifelse(data_clean$Group.t1 == 1 & data_clean$vid2_difftime > 126, FALSE, 
+                              ifelse(data_clean$Group.t1 == 2 & data_clean$vid2_difftime > 249, FALSE,
+                               ifelse(data_clean$Group.t1 == 3 & data_clean$vid2_difftime > 131, FALSE,
+                                ifelse(data_clean$Group.t1 == 4 & data_clean$vid2_difftime > 41, FALSE,
+                                  ifelse(data_clean$Group.t1 == 5 & data_clean$vid2_difftime > 26, FALSE,
+                                    ifelse(data_clean$Group.t1 == 6 & data_clean$vid2_difftime > 44, FALSE,
+                                      ifelse(data_clean$Group.t1 == 7 & data_clean$vid2_difftime > 266, FALSE,
+                                        ifelse(data_clean$Group.t1 == 8 & data_clean$vid2_difftime > 156, FALSE,
+                                          ifelse(data_clean$Group.t1 == 9 & data_clean$vid2_difftime > 171, FALSE, 
+                                            ifelse(is.na(data_clean$vid2_difftime), FALSE, TRUE))))))))))
+
+
+```
+
+
+```{r att_check_calculate_long, eval=TRUE, echo=FALSE}
 # ATTENTION CHECK 
 
 # errors on the classic attention check items
@@ -174,65 +275,30 @@ data_clean$att_check_video_errors <- calculate_att_check_video_errors(
                            "att_check_videoGr5.t1", "att_check_videoGr6.t1", "att_check_videoGr7.t1", "att_check_videoGr8.t1", 
                            "att_check_videoGr9.t1")) 
 
-# calculate time spent watching the videos
-data_time <- data_time[!is.na(data_time$session),]
-sum(is.na(data_time$session))
-vid1_watch_time <- calculate_vid1_difftime(data=data_time)
-vid2_watch_time <- calculate_vid2_difftime(data=data_time)
-
-# merge this data with the clean dataset
-data_final_vid12 <- full_join(vid1_watch_time, vid2_watch_time, by="session") %>% 
-  full_join(data_clean, by="session")
-
-# calculate if watch time is less than the length of the video (=error)
-vid1_too_short <- calculate_vid1_too_short(data=data_final_vid12)
-vid2_too_short <- calculate_vid2_too_short(data=data_final_vid12)
-
-# merge this data to the final
-data_final <- full_join(vid1_too_short[, c("vid1_too_short", "vid1_difftime", "session")], 
-                        vid2_too_short[, c("vid2_too_short", "vid2_difftime", "session")], by="session") %>% 
-  full_join(data_clean, by="session")
-#write.csv2(data_final, file="./data_final_tmp.csv")
-
-# calculate overall error score
-data_final$att_check_sum_t1 <- rowSums(data_final[, c("att_check_item_errors_t1", "att_check_video_errors", 
-                                                      "vid1_too_short", "vid2_too_short")])
-
-```
-
-
-```{r att_check_calculate_long, eval=TRUE, echo=FALSE}
-data_final_long <- data_final[data_final$session_full == TRUE, ]
-
-data_final_long$att_check_item_errors_t1_t4 <- calculate_att_check_item_errors_t1_t4(data=data_final_long, 
+# errors on the longitudinal attention check items
+data_clean$att_check_item_errors_t1_t4 <- calculate_att_check_item_errors_t1_t4(data=data_clean, 
                                                                           var1 = "att_check1.t1", var2 = "att_check2.t1",
                                                                           var3 = "att_check1.t2", var4 = "att_check2.t2",
                                                                           var5 = "att_check1.t3", var6 = "att_check2.t3", 
                                                                           var7 = "att_check1.t4", var8 = "att_check2.t4", 
                                                                           var9 = "att_check3.t4")
 
-data_final_long$att_check_sum_t1_t4 <- rowSums(data_final_long[, c("att_check_item_errors_t1_t4", "att_check_video_errors", 
-                                                         "vid1_too_short", "vid2_too_short")])
+# calculate overall error score on baseline data
+data_clean$att_check_sum_t1 <- rowSums(data_clean[, c("att_check_item_errors_t1", "att_check_video_errors", 
+                                                      "vid1_too_short", "vid2_too_short")])
+# calculate overall error score on longitudinal data
+data_clean$att_check_sum_t1_t4 <- rowSums(data_clean[, c("att_check_item_errors_t1_t4", "att_check_video_errors", 
+                                                          "vid1_too_short", "vid2_too_short")])
 
-# check errors by session
-att_check_items_t1_t4 <- c("session", 
-                           "att_check_sum_t1_t4", 
-                           "att_check_item_errors_t1", "att_check_video_errors", "vid1_too_short", "vid2_too_short",    # @t1
-                           "voucher_yes_no.scP")  # Would you like to receive the $10 voucher? where 1=yes, 2=no
-data_att_check_t1_t4 <- data_final_long[, att_check_items_t1_t4]
-data_att_check_t1_t4[data_att_check_t1_t4$session == "AYfR-Zd4pJo7vF3Ru6k6IIFBViGrRYwjiGRv62n5rPD2KRYztpRZdhDGMG8w-8af", ]
 
-# clear all helper data, but the final
-# rm(list=setdiff(ls(), "data_final"))
- 
 ```
 
 ```{r att_check_plot, eval=T, echo=F}
 # baseline data  
-plot_error_baseline(data=data_final)
+plot_error_baseline(data=data_clean)
 
 # longitudinal data  
-plot_error_longitudinal(data=data_final_long)
+plot_error_longitudinal(data=data_clean)
 
 ```
 
@@ -240,16 +306,16 @@ plot_error_longitudinal(data=data_final_long)
 
 
 ```{r final_data_bl_exclude_cheaters, eval=T, echo=T}
-
 ## final data BASELINE
-N_baseline_all <- length(data_final$session)
-data_final_bl <- data_final[data_final$att_check_sum_t1 <= 1,]
+N_baseline_all <- length(data_clean$session)
+data_final_bl <- data_clean[(data_clean$att_check_sum_t1 < 2), ]
+data_final_bl <- data_final_bl[!is.na(data_final_bl$session), ]
 N_baseline_noError <- length(data_final_bl$session)
 
 N_errors_baseline <- list(
     "total number of baseline data rows" = N_baseline_all,
     "total number of participants with too many (>1) errors T1" = N_baseline_all - N_baseline_noError,
-    "total number of clean (final) data" = N_baseline_noError)
+    "total number of clean (final) data at BASELINE" = N_baseline_noError)
 N_errors_baseline
 
 ```
@@ -257,37 +323,48 @@ N_errors_baseline
 
 ```{r final_data_long_exclude_cheaters, eval=T, echo=T}
 ## final data LONGITUDINAL
-# exclude errors > 3 on longitudinal
+N_baseline <- length(data_clean$session)
 
-# data_final_long <- data_final[data_final$session_full == TRUE, ]
-N_fulldata_long <- length(data_final_long$session_full)
+# select full data only
+data_final_long <- data_clean[data_clean$session_full == TRUE, ]
+data_final_long <- data_final_long[!is.na(data_final_long$session), ]
+N_longitudinal <- length(data_final_long$session)
 
+# exclude those with too many errors
+data_final_long <- data_final_long[data_final_long$att_check_sum_t1_t4 < 3, ]
+data_final_long <- data_final_long[!is.na(data_final_long$session), ]
+N_long_noError <- length(data_final_long$session)
 
-data_final_long <- data_final_long[data_final_long$att_check_sum_t1_t4 < 3,]
-N_cleandata_long <- length(data_final_long$session_full)
-
+# print results
 exclude_errors_long <- list(
-        "total number of baseline data rows" = N_fulldata_long,
-        "total number of participants with too many (>2) errors T1-T4" = N_fulldata_long - N_cleandata_long,
-        "total number of clean data" = N_cleandata_long)
+        "total number of baseline data rows" = N_baseline,
+        "total number of participants with full longitudinal data (T1-T4)"  = N_longitudinal,
+        "total number of participants with too many (>2) errors T1-T4" = N_longitudinal - N_long_noError,
+        "total number of final data LONGITUDINAL" = N_long_noError)
 exclude_errors_long
 
 ```
+```{r check_data_quality}
+# for baseline data
+round(prop.table(table(data_final_bl$att_check_sum_t1)) * 100, 2)
+round(prop.table(table(data_final_bl$vid1_too_short)) * 100, 2)
+round(prop.table(table(data_final_bl$ip_more_than_1)) * 100, 2)
+round(prop.table(table(data_final_bl$ip_country != "US")) * 100, 2)
+
+# for longitudinal data
+round(prop.table(table(data_final_long$att_check_sum_t1_t4)) * 100, 2)
+round(prop.table(table(data_final_long$vid1_too_short)) * 100, 2)
+round(prop.table(table(data_final_long$ip_more_than_1)) * 100, 2)
+round(prop.table(table(data_final_long$ip_country != "US")) * 100, 2)
+
+```
+
 
 ```{r save_final_data}
-# remove IP address before publishing data
-data_final_bl %>% select(-starts_with("ip_address"))
-data_final_long %>% select(-starts_with("ip_address"))
-
-# keep baseline data only
-data_final_bl <-  data_final_bl[, c(grep(".+.t1$", names(data_final_bl), value=T), 
-                                    grep("session", names(data_final_bl), value=T), 
-                                    grep(".+.sc$", names(data_final_bl), value=T))]
-
 ## save final  data
 if (overwrite_data) {
-  write.csv2(data_final_bl, file="../../Data/data_final_bl.csv")
-  write.csv2(data_final_long, file="../../Data/data_final_long.csv")
+  write.csv2(data_final_bl, file="../../Data/data_final_bl_180910.csv")
+  write.csv2(data_final_long, file="../../Data/data_final_long_180910.csv")
 }
 
 ```
