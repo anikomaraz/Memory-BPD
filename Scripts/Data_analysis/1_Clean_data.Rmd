@@ -151,9 +151,16 @@ if (overwrite_data == TRUE) {
 ```
 
 
-```{r load_count_data, eval=T, echo=F}
+```{r load_data, eval=T, echo=F}
 ## load final data
 data_clean <- read.csv2("../../Data/data_clean_180906.csv", stringsAsFactors = F)
+
+```
+
+
+```{r count_data_check_bpd}
+# create BPD scale for checking BPD equlity accross conditions
+data_clean$BPD_screen <- rowSums(data_clean[, grep("^bpd_s\\d+", colnames(data_clean), value=T)], na.rm=F)
 
 ## raw data, without test and empty sessions 
 N1_notest <- length(data_clean$session)
@@ -183,6 +190,9 @@ data_clean$screen_positive <- ifelse(data_clean$screen_bpd_posNeg &
 data_clean <- data_clean[data_clean$screen_positive == T, ]
 N5_screenpostive <- length(data_clean$session)
 
+# check for group difference among those who passed the screening between those who completed P1 and those who did not 
+BPD_scrPos_compP1_vs_notCompP1 <- t.test(data_clean$BPD_screen ~ !is.na(data_clean$panas_1.t1), alternative= "two.sided")
+
 ## participants with no missing data on PANAS at t1
 data_clean <- data_clean[!is.na(data_clean$panas_1.t1),]
 N6_Part1_compl <- length(data_clean$session)
@@ -196,6 +206,9 @@ N8_Part3_compl <- sum(!is.na(data_clean$gen_impr_test.t3))
 ## participants who completed Part 4, meaning they have full data (t1-t4)
 data_clean$session_full <- !is.na(data_clean[,"panas_1.t4"])
 N9_Part4_compl_full <- sum(data_clean$session_full)
+
+# check for group difference among those who completed t4 vs. those who only did t1
+BPD__compP1_vs_compP4 <- t.test(data_clean$BPD_screen ~ data_clean$session_full, alternative= "two.sided")
 
 ## sample N accross data cleaning
 sample_N <- list(
@@ -211,6 +224,11 @@ sample_N <- list(
 
 sample_N
 
+
+## check BPD accross groups
+list(
+  "Sample: all participants who completed the screening, Difference between those not starting Part1 vs. completing Part 1" = BPD_scrPos_compP1_vs_notCompP1, 
+  "Group difference between those finishing all 4 parts vs. finishing Part 1 only" = BPD__compP1_vs_compP4)
 
 ```
 
@@ -358,6 +376,7 @@ round(prop.table(table(data_final_long$ip_more_than_1)) * 100, 2)
 round(prop.table(table(data_final_long$ip_country != "US")) * 100, 2)
 
 ```
+
 
 
 ```{r save_final_data}
