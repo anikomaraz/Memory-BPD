@@ -22,7 +22,7 @@ source("../../Scripts/ipstack_key.R")
 # user-defined options
 overwrite_data = FALSE  # if TRUE, then the final data will be saved (overwritten)
 access_to_identifiable_data = TRUE # if TRUE, then data will contain identifiable information. These files are not available to the public.
-ip_verification = TRUE # if true, then IP addresses will be checked via ipstack
+ip_verification = FALSE # if true, then IP addresses will be checked via ipstack
 
 ```
 
@@ -263,10 +263,10 @@ data_clean <- data_clean %>%
 
 # calculate if watch time is less than the length of the video (=error)
 # for Vid1 (same for everyone)
-data_clean$vid1_too_short <- ifelse(data_clean$vid1_difftime > 240 | is.na(data_clean$vid1_difftime), FALSE, TRUE)
+data_clean$vid1_too_short_t1 <- ifelse(data_clean$vid1_difftime > 240 | is.na(data_clean$vid1_difftime), FALSE, TRUE)
 
 # for Vid 2 (one selected randomly from 9 alternatives), numbers indicate the length of the video (in sec)
-data_clean$vid2_too_short <- ifelse(data_clean$Group.t1 == 1 & data_clean$vid2_difftime > 126, FALSE, 
+data_clean$vid2_too_short_t1 <- ifelse(data_clean$Group.t1 == 1 & data_clean$vid2_difftime > 126, FALSE, 
                               ifelse(data_clean$Group.t1 == 2 & data_clean$vid2_difftime > 249, FALSE,
                                ifelse(data_clean$Group.t1 == 3 & data_clean$vid2_difftime > 131, FALSE,
                                 ifelse(data_clean$Group.t1 == 4 & data_clean$vid2_difftime > 41, FALSE,
@@ -288,7 +288,7 @@ data_clean$vid2_too_short <- ifelse(data_clean$Group.t1 == 1 & data_clean$vid2_d
 data_clean$att_check_item_errors_t1 <- calculate_att_check_item_errors_t1(data=data_clean, "att_check1.t1", "att_check2.t1")
 
 # errors on video-content-related attention check items
-data_clean$att_check_video_errors <- calculate_att_check_video_errors(
+data_clean$att_check_video_errors_t1 <- calculate_att_check_video_errors(
   data=data_clean, vars=c( "att_check_videoGr1.t1", "att_check_videoGr2.t1", "att_check_videoGr3.t1", "att_check_videoGr4.t1", 
                            "att_check_videoGr5.t1", "att_check_videoGr6.t1", "att_check_videoGr7.t1", "att_check_videoGr8.t1", 
                            "att_check_videoGr9.t1")) 
@@ -302,11 +302,11 @@ data_clean$att_check_item_errors_t1_t4 <- calculate_att_check_item_errors_t1_t4(
                                                                           var9 = "att_check3.t4")
 
 # calculate overall error score on baseline data
-data_clean$att_check_sum_t1 <- rowSums(data_clean[, c("att_check_item_errors_t1", "att_check_video_errors", 
-                                                      "vid1_too_short", "vid2_too_short")])
+data_clean$att_check_sum_t1 <- rowSums(data_clean[, c("att_check_item_errors_t1", "att_check_video_errors_t1", 
+                                                      "vid1_too_short_t1", "vid2_too_short_t1")])
 # calculate overall error score on longitudinal data
-data_clean$att_check_sum_t1_t4 <- rowSums(data_clean[, c("att_check_item_errors_t1_t4", "att_check_video_errors", 
-                                                          "vid1_too_short", "vid2_too_short")])
+data_clean$att_check_sum_t1_t4 <- rowSums(data_clean[, c("att_check_item_errors_t1_t4", "att_check_video_errors_t1", 
+                                                          "vid1_too_short_t1", "vid2_too_short_t1")])
 
 
 ```
@@ -380,11 +380,15 @@ round(prop.table(table(data_final_long$ip_country != "US")) * 100, 2)
 
 
 ```{r save_final_data}
+## generate baseline data only
+data_final_bl <- data_final_bl[, grep("session|t1$|.sc$", colnames(data_final_bl), value=T)]
+
 ## save final  data
 if (overwrite_data) {
   write.csv2(data_final_bl, file="../../Data/data_final_bl_180910.csv")
   write.csv2(data_final_long, file="../../Data/data_final_long_180910.csv")
 }
+
 
 ```
 

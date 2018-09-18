@@ -247,15 +247,15 @@ calculate_vid2_difftime <- function (data=data) {
 
 ## trial (Video1)
 calculate_vid1_too_short <- function(data=data) {
-  vid1_too_short <- data %>%  
+  vid1_too_short_t1 <- data %>%  
      mutate(vid1_too_short = ifelse(vid1_difftime > 240 | is.na(vid1_difftime), 0, 1))
-  return(vid1_too_short)
+  return(vid1_too_short_t1)
   }
 
 ## test (Video2)
 calculate_vid2_too_short <- function(data=data) {
   vid2_too_short <-  data %>% 
-    mutate(vid2_too_short =
+    mutate(vid2_too_short_t1 =
               ifelse(Group.t1 == 1 & vid2_difftime > 126, 0, 
               ifelse(Group.t1 == 2 & vid2_difftime > 249, 0,
               ifelse(Group.t1 == 3 & vid2_difftime > 131, 0,
@@ -266,7 +266,7 @@ calculate_vid2_too_short <- function(data=data) {
               ifelse(Group.t1 == 8 & vid2_difftime > 156, 0,
               ifelse(Group.t1 == 9 & vid2_difftime > 171, 0, 
               ifelse(is.na(vid2_difftime), 0, 1)))))))))))
-  return(vid2_too_short)
+  return(vid2_too_short_t1)
   }
 
 
@@ -277,9 +277,9 @@ plot_error_baseline <-  function (data=data) {
   par(mfrow=c(3, 2), mar=c(2, 2, 4, 2))
   with(data, {
     barplot(table(att_check_item_errors_t1), main="Errors on attention check items (T1)")
-    barplot(table(vid1_too_short), main="Video1 (test) watched in too short time")
-    barplot(table(vid2_too_short), main="Video2 (target) watched in too short time")
-    barplot(table(att_check_video_errors), main="Errors on video content related \nattention check items")
+    barplot(table(vid1_too_short_t1), main="Video1 (test) watched in too short time")
+    barplot(table(vid2_too_short_t1), main="Video2 (target) watched in too short time")
+    barplot(table(att_check_video_errors_t1), main="Errors on video content related \nattention check items")
     barplot(table(att_check_sum_t1), main="TOTAL NUMBER OF ERRORS, T1")
   title(main="BASELINE DATA", outer=T)
   })
@@ -290,29 +290,16 @@ plot_error_longitudinal <- function (data=data) {
   par(mfrow=c(3, 2), mar=c(2, 2, 4, 2))
 with(data, {
   barplot(table(att_check_item_errors_t1_t4), main="Errors on attention check items (T1-T4)")
-  barplot(table(vid1_too_short), main="Video1 (test) watched in too short time")
-  barplot(table(vid2_too_short), main="Video2 (target) watched in too short time")
-  barplot(table(att_check_video_errors), main="Errors on video content related \nattention check items")
+  barplot(table(vid1_too_short_t1), main="Video1 (test) watched in too short time")
+  barplot(table(vid2_too_short_t1), main="Video2 (target) watched in too short time")
+  barplot(table(att_check_video_errors_t1), main="Errors on video content related \nattention check items")
   barplot(table(att_check_sum_t1_t4), main="TOTAL NUMBER OF ERRORS, (T1-T4)")
   title(main="LONGITUDINAL DATA", outer=T)
   })
 }
 
 
-## DESCRIPTIVE STATISTICS
 
-##  PLOTS
-# plot_memo_bpd <- function (data=data, va1 = BPD, va2 = PANAS.t1) {
-#   plot_bpd <-  ggplot(data, aes(x=va1, y=va2, color=Group_affect)) +
-#     geom_point() + 
-#     #geom_smooth()
-#     theme_light() +
-#     scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
-#     labs(color = "Group affect", x="Borderline Personality Disorder", y="Affect (PANAS)")
-#   return(plot_bpd)
-# }
-#   
-# plot_memo_bpd()
   
   
 

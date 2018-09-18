@@ -17,14 +17,14 @@ overwrite_data = TRUE  # if TRUE, then the final data will be saved (overwritten
 ```
 
 ```{r get_format_data, eval=T, echo=F}
-data_final_bl <- read.csv2("../../Data/data_final_bl.csv")
-
+data_final_bl <- read.csv2("../../Data/data_final_bl_180910.csv")
+ 
 cols_to_factor <- c("gender.sc", "gender.t1", "edu_years_compl.t1", "edu_highest.t1", "SES_subj.t1", "national.t1", 
                     "work.t1", "study.t1", "relationship.t1", "relationship_qual.t1", 
                     "English_first.sc", "English_level.sc", "English_first.t1", "English_level.t1", 
                     "medication.t1", "diagn_bpd.t1")
 for (i in cols_to_factor) {
-  data_final[, i] <- as.factor(data_final[, i]) 
+  data_final_bl[, i] <- as.factor(data_final_bl[, i]) 
 }
 
 levels(data_final_bl$gender.sc) <- c("1"="female", "2"="male", "3"="other", "4"="I don't want to tell")
@@ -80,6 +80,7 @@ table_descr_demogr <- list(
   "Borderline diagnosis?" = round(prop.table(table(data_final_bl$diagn_bpd.t1))*100, 2)
   )
 
+table_descr_demogr
 
 # group assigment 
 table(data_final_bl$Group.t1)
@@ -94,10 +95,10 @@ data_final_bl$Group_affect <- ifelse(data_final_bl$Group.t1 %in% c("1", "2", "3"
 data_final_bl$Group_affect <- factor(data_final_bl$Group_affect, levels=c("1" = "positive", "2" = "neutral", "3"="negative"))
 
 ## BORDERLINE SCREENING (MSI-BPD)
-data_final_bl$BPD_screen <- rowSums(data_final_bl[, grep("^bpd_s\\d+", colnames(data_final), value=T)], na.rm=F)
+data_final_bl$BPD_screen <- rowSums(data_final_bl[, grep("^bpd_s\\d+", colnames(data_final_bl), value=T)], na.rm=F)
 
 ## MOOD:   CESD, 10 items x5 response => range: 10-50
-data_final_bl$CESD.t1 <-  rowSums(data_final_bl[,grep("^cesd_.+.t1", colnames(data_final), value=T)], na.rm=F)
+data_final_bl$CESD.t1 <-  rowSums(data_final_bl[,grep("^cesd_.+.t1", colnames(data_final_bl), value=T)], na.rm=F)
 
 ## VIDEO AFFECTS: PANAS 20 items, x7 response => range: 20-140, 10 items for positive, 10 items for negative affect
 panas_positive_items <- c("panas_1.t1", "panas_3.t1", "panas_5.t1", "panas_9.t1", "panas_10.t1",
@@ -138,14 +139,8 @@ data_final_bl$BPD_abs2 <- rowSums(data_final_bl[, grep("^bpd_absExtra_+", colnam
 lec_items.t1 <- c(grep("lec_.+.t1$", names(data_final_bl), value=T))
 data_final_bl$LEC_positive.t1 <- ifelse(data_final_bl[ , lec_items.t1] == "1" | data_final_bl[ , lec_items.t1] == "2", T, F)
 
-scales <- c("Group_affect", "LEC_positive.t1", # categoricals
-            "BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
-            "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
-            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2")
-
 ## EXTREMITY OF THE RESPONSE
 bfi_items <- colnames(data_final_bl[, grep("^ipip_", colnames(data_final_bl), value=F)])
-# extr_items <- paste0(rep("extr_", 20), seq(1:20))
 
 for (i in bfi_items) {
   data_final_bl[, paste0("extr_", i)] <- recode(data_final_bl[, i], "1" = 2, "2" = 1, "3" = 0, "4" = 1, "5" = 2)
@@ -153,12 +148,12 @@ for (i in bfi_items) {
 
 data_final_bl$EXTR <- rowSums(data_final_bl[, grep("extr_", colnames(data_final_bl), value=T)], na.rm=F)
 
+## GENERAL IMPRESSION merge group data
+gr_gen_impr_items <- c("gr1_gen_impr.t1", "gr2_gen_impr.t1", "gr3_gen_impr.t1", "gr4_gen_impr.t1", 
+                       "gr5_gen_impr.t1", "gr6_gen_impr.t1", "gr7_gen_impr.t1", "gr8_gen_impr.t1", "gr9_gen_impr.t1")
+data_final_bl$GEN_IMPR.t1 <- rowSums(data_final_bl[, gr_gen_impr_items], na.rm=T)  #given that every participant watched/rated one video only
 
-```
-
-
-```{r bpd_scale, eval=T, echo=T}
-
+  
 
 
 ```
@@ -168,30 +163,103 @@ data_final_bl$EXTR <- rowSums(data_final_bl[, grep("extr_", colnames(data_final_
 ```{r describe_scales, eval=T, echo=T}
 scales_continous <- c("BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
             "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
-            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2", "EXTR")
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2", "EXTR", "GEN_IMPR.t1")
 data_scales_continous <- data_final_bl[, scales_continous]    
 
-descriptive_scales <- data.frame("Mean" = numeric(), "SD" = numeric(), "min" = numeric(), "max" = numeric())
+descriptive_scales <- data.frame("Mean" = numeric(), "SD" = numeric(), "min" = numeric(), "max" = numeric(), "normality_SW" = numeric(), "normality_SW_p" = numeric())
+
 for (i in 1:length(names(data_scales_continous))) {
+  shapiroResult <- shapiro.test(data_scales_continous[, i])
   newRow <- list(mean(data_scales_continous[, i], na.rm=TRUE),
       sd(data_scales_continous[, i], na.rm=TRUE),
       min(data_scales_continous[, i], na.rm=TRUE),
-      max(data_scales_continous[, i], na.rm=TRUE))
+      max(data_scales_continous[, i], na.rm=TRUE),
+      shapiroResult[[1]], 
+      shapiroResult[[2]])
       descriptive_scales[names(data_scales_continous[i]), ] <-  newRow
   }
 print(round(descriptive_scales, 2))
   
 ```
 
-```{r save_final_data}
+```{r bpdGroup_equality}
+scales_continous_group <- c("BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
+            "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2", "EXTR", "GEN_IMPR.t1", "Group_affect")
+data_scales_continous_group <- data_final_bl[, scales_continous_group]    
 
-# keep baseline data only
-data_final_bl_scales <-  data_final_bl[,grep(".+.t1$|session|.+.sc$|BPD|IPIP|lec_|Group_affect", names(data_final_bl), value=T)]
+df_anova_Gr <- data.frame("P" = numeric(), "F" = numeric(), 
+                          "Neu-Pos_diff" = numeric(), "Neu-Pos_p" = numeric(), 
+                          "Neg-Pos_diff" = numeric(), "Neg-Pos_p" = numeric(), 
+                          "Neg-Neu_diff" = numeric(), "Neg-Neu_p" = numeric())
+
+df_anova_Gr_calc <- 
+  for (i in 1:(ncol(data_scales_continous_group)-1)) {
+  anovaresult <- anova(aov(data_scales_continous_group[, i] ~ Group_affect, data = data_scales_continous_group))
+  posthocresult <- TukeyHSD(aov(data_scales_continous_group[, i] ~ Group_affect, data = data_scales_continous_group))
+  newRow <- list(anovaresult$`Pr(>F)`[1], 
+                  anovaresult$`F value`[1], 
+                  posthocresult$Group_affect[1, 1], # diff between neu-pos
+                  posthocresult$Group_affect[1, 4], # p value for neu-pos
+                  posthocresult$Group_affect[2, 1], # diff between neg-pos
+                  posthocresult$Group_affect[2, 4], # p value for neg-pos
+                  posthocresult$Group_affect[3, 1], # diff between neg-neu
+                  posthocresult$Group_affect[3, 4]) # p value for neg-neu
+  
+        df_anova_Gr[names(data_scales_continous_group[i]), ] <- newRow
+  }
+
+print(round(df_anova_Gr, 2))
+
+# closer look at group differences on PANAS
+aggregate(data_final_bl[, c("PANAS_NEG.t1", "PANAS_POS.t1", "PANAS.t1")], by=list(data_final_bl$Group_affect), FUN=mean)
+
+```
+
+```{r plots_exploratory}
+hist(data_final_bl$BPD, breaks=100)
+
+ggplot(data=data_final_bl, aes(BPD, PANAS.t1, fill=Group_affect)) +
+  geom_point() + geom_jitter() + geom_smooth() +
+  theme_linedraw()
+
+ggplot(data=data_final_bl, aes(BPD, EXTR, fill=Group_affect)) +
+  geom_point() +  geom_jitter() +  geom_smooth() +
+  theme_linedraw()
+
+ggplot(data=data_final_bl, aes(BPD, gen_impr_test.t1, fill=Group_affect)) +
+  geom_point() +  geom_jitter() +  geom_smooth() +
+  theme_linedraw()
+
+ggplot(data=data_final_bl, aes(BPD, GEN_IMPR.t1, fill=Group_affect)) +
+  geom_point() +  geom_jitter() +  geom_smooth() +
+  theme_linedraw()
+
+
+```
+
+
+
+
+```{r save_final_data}
 
 ## save final  data
 if (overwrite_data) {
-  write.csv2(data_final_bl_scales, file="../../Data/data_final_bl_scales2.csv")
+  write.csv2(data_final_bl, file="../../Data/data_final_bl_scales_180913.csv")
 }
 
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+

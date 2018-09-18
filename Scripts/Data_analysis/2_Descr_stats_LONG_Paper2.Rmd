@@ -20,8 +20,8 @@ load_my_packages(packages)
 ```
 
 ```{r get_format_data, eval=T, echo=F}
-data_final_long <- read.csv2("../../Data/data_final_long.csv")
-
+data_final_long <- read.csv2("../../Data/data_final_long_180910.csv")
+ 
 cols_to_factor <- c("gender.sc", "gender.t1", "edu_years_compl.t1", "edu_highest.t1", "SES_subj.t1", "national.t1", 
                     "work.t1", "study.t1", "relationship.t1", "relationship_qual.t1", 
                     "English_first.sc", "English_level.sc", "English_first.t1", "English_level.t1", 

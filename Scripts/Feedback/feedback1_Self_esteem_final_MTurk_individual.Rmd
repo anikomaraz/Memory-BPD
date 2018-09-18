@@ -23,9 +23,9 @@ suppressMessages(library(data.table))
 
 ```{r data, eval = TRUE, echo = FALSE, messages = FALSE, warning=FALSE}
 
-data_SE <- read.csv2("../../Data/Raw_data/part4_MTurk_180820.csv", sep=",")
+data_SE_all <- read.csv2("../../Data/Raw_data/part4_MTurk_180906.csv", sep=",")
 # select MTurkers who inquire by session
-data_SE <- data_SE[data_SE$session == "pCawP_aGjxTJHZopQWvm8cLdU_CtSPpivCOx0gmJNa7dJn5lLCJ7FS6XwFTFz9uS", ]
+data_SE <- data_SE_all[data_SE_all$session == "dnix3mwlPCw1prncj5T5W_6_iVIiWcgMtrNXJfXC9XSlY5iR0jzmA5x445FbVhy2", ][2,]
 data_SE <- data_SE[, grep("^rses_", names(data_SE), value=T)]
 
 
@@ -41,7 +41,7 @@ rses <- sum(data_SE)
 ```
 
 
-```{r}
+```{r ref_df, echo=F, eval=T}
 # creat reference data frame (with means) from Sinclair et al., 2010
 # Gender
 data_ref <- data.frame(
