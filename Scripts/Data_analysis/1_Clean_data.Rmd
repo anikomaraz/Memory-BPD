@@ -21,8 +21,8 @@ source("../../Scripts/ipstack_key.R")
 
 # user-defined options
 overwrite_data = FALSE  # if TRUE, then the final data will be saved (overwritten)
-access_to_identifiable_data = TRUE # if TRUE, then data will contain identifiable information. These files are not available to the public.
-ip_verification = FALSE # if true, then IP addresses will be checked via ipstack
+access_to_identifiable_data = TRUE # if TRUE, then data will contain identifiable information. These files are not available for the public.
+ip_verification = FALSE # if true, then IP addresses will be checked via ipstack (make sure you have an account and insert your own key)
 
 ```
 

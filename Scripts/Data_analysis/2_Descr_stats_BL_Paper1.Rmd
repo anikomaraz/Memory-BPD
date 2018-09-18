@@ -12,7 +12,7 @@ packages <- c("ggplot2", "tidyverse", "lubridate", "data.table", "psych")
 load_my_packages(packages)
 
 # user-set options
-overwrite_data = TRUE  # if TRUE, then the final data will be saved (overwritten)
+overwrite_data = FALSE  # if TRUE, then the final data will be saved (overwritten)
 
 ```
 
@@ -87,6 +87,19 @@ table(data_final_bl$Group.t1)
 
 ```
 
+```{r BPD_conflicting_items, eval=T, echo=F}
+# as per the pre-registration: "Given that the two items that compose the Absorption scale are very similarly worded in the Likert-scale response format of the instrument: 
+# “I can often somehow sense the presence of another person before I actually see or hear" [bpd_absExtra_20] and 
+# “At times I somehow feel the presence of someone who is not physically there” [bpd_absExtra_21]), the alternative items for the same scale are also administered in the current study, although they were initially selected to be used in the dichotomous response format version of the instrument: 
+# “I sometimes “step outside” my usual self and experience an entirely different state of being.” [bpd_abs_18] and 
+# “Sometimes I feel as if my mind could envelope the whole world.” [bpd_abs_19]). If the initial items correlate very highly (r>0.8) during the analyses, then the alternative items will be used for this scale for reasons of content overlap."
+
+# check correlation
+pairs.panels(data_final_bl[, c("bpd_absExtra_20.t1", "bpd_absExtra_21.t1", "bpd_abs_18.t1", "bpd_abs_19.t1")], scale=TRUE)
+# therefore the initial items ("bpd_absExtra_20.t1" and "bpd_absExtra_20.t1") are kept for the scale.
+
+```
+
 ```{r calculate_scales_variables}
 ## AFFECT GROUPING
 data_final_bl$Group_affect <- ifelse(data_final_bl$Group.t1 %in% c("1", "2", "3"), "positive", 
@@ -132,8 +145,7 @@ data_final_bl$BPD_alien <- rowSums(data_final_bl[, grep("^bpd_alien+", colnames(
 data_final_bl$BPD_control <- rowSums(data_final_bl[, grep("^bpd_contr+", colnames(data_final_bl), value=T)], na.rm=F)
 data_final_bl$BPD_aggression <- rowSums(data_final_bl[, grep("^bpd_aggr+", colnames(data_final_bl), value=T)], na.rm=F)
 data_final_bl$BPD_wellbeing <- rowSums(data_final_bl[, grep("^bpd_wb+", colnames(data_final_bl), value=T)], na.rm=F)
-data_final_bl$BPD_abs1 <- rowSums(data_final_bl[, grep("^bpd_abs_+", colnames(data_final_bl), value=T)], na.rm=F)
-data_final_bl$BPD_abs2 <- rowSums(data_final_bl[, grep("^bpd_absExtra_+", colnames(data_final_bl), value=T)], na.rm=F)
+data_final_bl$BPD_abs <- rowSums(data_final_bl[, grep("^bpd_absExtra_+", colnames(data_final_bl), value=T)], na.rm=F)
 
 ## LIFE EVENT CHECKLIST
 lec_items.t1 <- c(grep("lec_.+.t1$", names(data_final_bl), value=T))
@@ -154,16 +166,23 @@ gr_gen_impr_items <- c("gr1_gen_impr.t1", "gr2_gen_impr.t1", "gr3_gen_impr.t1", 
 data_final_bl$GEN_IMPR.t1 <- rowSums(data_final_bl[, gr_gen_impr_items], na.rm=T)  #given that every participant watched/rated one video only
 
   
+```
 
+
+```{r}
+# calculate scale reliability
+alpha(data_final_bl[, grep("^bpd_s\\d+", colnames(data_final_bl), value=T)])
 
 ```
+
+  
 
 
 
 ```{r describe_scales, eval=T, echo=T}
 scales_continous <- c("BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
             "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
-            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2", "EXTR", "GEN_IMPR.t1")
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs", "EXTR", "GEN_IMPR.t1")
 data_scales_continous <- data_final_bl[, scales_continous]    
 
 descriptive_scales <- data.frame("Mean" = numeric(), "SD" = numeric(), "min" = numeric(), "max" = numeric(), "normality_SW" = numeric(), "normality_SW_p" = numeric())
@@ -179,13 +198,15 @@ for (i in 1:length(names(data_scales_continous))) {
       descriptive_scales[names(data_scales_continous[i]), ] <-  newRow
   }
 print(round(descriptive_scales, 2))
-  
+
+
+
 ```
 
 ```{r bpdGroup_equality}
 scales_continous_group <- c("BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
             "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
-            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2", "EXTR", "GEN_IMPR.t1", "Group_affect")
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "EXTR", "GEN_IMPR.t1", "Group_affect")
 data_scales_continous_group <- data_final_bl[, scales_continous_group]    
 
 df_anova_Gr <- data.frame("P" = numeric(), "F" = numeric(), 
