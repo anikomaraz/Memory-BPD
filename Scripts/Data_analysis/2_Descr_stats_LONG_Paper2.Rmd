@@ -21,14 +21,22 @@ load_my_packages(packages)
 
 ```{r get_format_data, eval=T, echo=F}
 data_final_long <- read.csv2("../../Data/data_final_long_180910.csv")
- 
+# sample size
+length(data_final_long$session)
+
 cols_to_factor <- c("gender.sc", "gender.t1", "edu_years_compl.t1", "edu_highest.t1", "SES_subj.t1", "national.t1", 
                     "work.t1", "study.t1", "relationship.t1", "relationship_qual.t1", 
                     "English_first.sc", "English_level.sc", "English_first.t1", "English_level.t1", 
                     "medication.t1", "diagn_bpd.t1")
 for (i in cols_to_factor) {
-  data_final[, i] <- as.factor(data_final[, i]) 
+  data_final_long[, i] <- as.factor(data_final_long[, i]) 
   }
+
+## AFFECT GROUPING
+data_final_long$Group_affect <- ifelse(data_final_long$Group.t1 %in% c("1", "2", "3"), "positive", 
+                                  ifelse(data_final_long$Group.t1 %in% c("4", "5", "6"), "neutral", 
+                                         ifelse(data_final_long$Group.t1 %in% c("7", "8", "9"), "negative", NA)))
+data_final_long$Group_affect <- factor(data_final_long$Group_affect, levels=c("1" = "positive", "2" = "neutral", "3"="negative"))
 
 levels(data_final_long$gender.sc) <- c("1"="female", "2"="male", "3"="other", "4"="I don't want to tell")
 levels(data_final_long$gender.t1) <- c("1"="female", "2"="male", "3"="other", "4"="I don't want to tell")
@@ -86,6 +94,8 @@ table_descr_demogr
 
 # group assigment 
 table(data_final_long$Group.t1)
+table(data_final_long$Group_affect)
+
 
 ```
 
@@ -123,7 +133,7 @@ for  (i in c(".t1", ".t2", ".t3", ".t4")) {
   }
 
 # PERSONALITY: IPIP 20 items, x5 response, 5 scales, each range 
-bfi_items_recode <- colnames(data_final_long[, grep("^ipip_.+[0-9]R", colnames(data_final), value=F)])
+bfi_items_recode <- colnames(data_final_long[, grep("^ipip_.+[0-9]R", colnames(data_final_long), value=F)])
 data_final_long[, bfi_items_recode] <- (6 - data_final_long[, bfi_items_recode])
 setnames(data_final_long, names(data_final_long[, bfi_items_recode]), gsub(pattern="R", replacement="", names(data_final_long[, bfi_items_recode])))
 
@@ -134,6 +144,14 @@ data_final_long$IPIP_extraversion <- rowSums(data_final_long[, grep("^ipip_extra
 data_final_long$IPIP_agreeableness <- rowSums(data_final_long[, grep("^ipip_agree", names(data_final_long), value=T)], na.rm=F)
 data_final_long$IPIP_neuroticism <- rowSums(data_final_long[, grep("^ipip_neuro", names(data_final_long), value=T)], na.rm=F)
 
+# EXTREMITY
+bfi_items <- colnames(data_final_long[, grep("^ipip_", colnames(data_final_long), value=F)])
+for (i in bfi_items) {
+  data_final_long[, paste0("extr_", i)] <- recode(data_final_long[, i], "1" = 2, "2" = 1, "3" = 0, "4" = 1, "5" = 2)
+  }
+
+data_final_long$EXTR <- rowSums(data_final_long[, grep("extr_", colnames(data_final_long), value=T)], na.rm=F)
+
 ## BORDERLINE 2 (BORNOVALOVA ET AL)
 data_final_long$BPD <- rowSums(data_final_long[, grep("^bpd_\\D{3,}", colnames(data_final_long), value=T)], na.rm=F)
 data_final_long$BPD_stress <- rowSums(data_final_long[, grep("^bpd_stress+", colnames(data_final_long), value=T)], na.rm=F)
@@ -141,8 +159,24 @@ data_final_long$BPD_alien <- rowSums(data_final_long[, grep("^bpd_alien+", colna
 data_final_long$BPD_control <- rowSums(data_final_long[, grep("^bpd_contr+", colnames(data_final_long), value=T)], na.rm=F)
 data_final_long$BPD_aggression <- rowSums(data_final_long[, grep("^bpd_aggr+", colnames(data_final_long), value=T)], na.rm=F)
 data_final_long$BPD_wellbeing <- rowSums(data_final_long[, grep("^bpd_wb+", colnames(data_final_long), value=T)], na.rm=F)
-data_final_long$BPD_abs1 <- rowSums(data_final_long[, grep("^bpd_abs_+", colnames(data_final_long), value=T)], na.rm=F)
-data_final_long$BPD_abs2 <- rowSums(data_final_long[, grep("^bpd_absExtra_+", colnames(data_final_long), value=T)], na.rm=F)
+data_final_long$BPD_abs <- rowSums(data_final_long[, grep("^bpd_absExtra_+", colnames(data_final_long), value=T)], na.rm=F)
+
+# GENERAL IMPRESSION
+gr_gen_impr.t1 <- c("gr1_gen_impr.t1", "gr2_gen_impr.t1", "gr3_gen_impr.t1", "gr4_gen_impr.t1", 
+                       "gr5_gen_impr.t1", "gr6_gen_impr.t1", "gr7_gen_impr.t1", "gr8_gen_impr.t1", "gr9_gen_impr.t1")
+gr_gen_impr.t2 <- c("gr1_gen_impr.t2", "gr2_gen_impr.t2", "gr3_gen_impr.t2", "gr4_gen_impr.t2", 
+                       "gr5_gen_impr.t2", "gr6_gen_impr.t2", "gr7_gen_impr.t2", "gr8_gen_impr.t2", "gr9_gen_impr.t2")
+gr_gen_impr.t3 <- c("gr1_gen_impr.t3", "gr2_gen_impr.t3", "gr3_gen_impr.t3", "gr4_gen_impr.t3", 
+                       "gr5_gen_impr.t3", "gr6_gen_impr.t3", "gr7_gen_impr.t3", "gr8_gen_impr.t3", "gr9_gen_impr.t3")
+gr_gen_impr.t4 <- c("gr1_gen_impr.t4", "gr2_gen_impr.t4", "gr3_gen_impr.t4", "gr4_gen_impr.t4", 
+                       "gr5_gen_impr.t4", "gr6_gen_impr.t4", "gr7_gen_impr.t4", "gr8_gen_impr.t4", "gr9_gen_impr.t4")
+
+data_final_long$GEN_IMPR.t1 <- rowSums(data_final_long[, gr_gen_impr.t1], na.rm=T)  #given that every participant watched/rated one video only
+data_final_long$GEN_IMPR.t2 <- rowSums(data_final_long[, gr_gen_impr.t2], na.rm=T)  #given that every participant watched/rated one video only
+# there were 3 participants (from VideoGroups 6, 9 and 8) who received all general impression items by a technical mistake. This data should be handled as missing. 
+data_final_long[, "GEN_IMPR.t2"][data_final_long[, "GEN_IMPR.t2"] > 7] <- NA 
+data_final_long$GEN_IMPR.t3 <- rowSums(data_final_long[, gr_gen_impr.t3], na.rm=T)  #given that every participant watched/rated one video only
+data_final_long$GEN_IMPR.t4 <- rowSums(data_final_long[, gr_gen_impr.t4], na.rm=T)  #given that every participant watched/rated one video only
 
 ## LIFE EVENT CHECKLIST
 lec_items.t1 <- c(grep("lec_.+.t1$", names(data_final_long), value=T))
@@ -169,9 +203,10 @@ scales <- c("BPD_screen", "CESD.t1", "CESD.t2", "CESD.t3", "CESD.t4",
             "PANAS_NEG.t1", "PANAS_NEG.t2", "PANAS_NEG.t3", "PANAS_NEG.t4",
             "PANAS.t1", "PANAS.t2", "PANAS.t3", "PANAS.t4",
             "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
-            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2")
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs")
 data_scales <- data_final_long[, scales]    
 
+# calculate descriptive statistics for the scales
 descriptive_scales <- data.frame("Mean" = numeric(), "SD" = numeric(), "min" = numeric(), "max" = numeric())
 for (i in 1:length(names(data_scales))) {
   newRow <- list(mean(data_scales[, i], na.rm=TRUE),
@@ -179,10 +214,22 @@ for (i in 1:length(names(data_scales))) {
       min(data_scales[, i], na.rm=TRUE),
       max(data_scales[, i], na.rm=TRUE))
       descriptive_scales[names(data_scales[i]), ] <-  newRow
-  }
+}
+
 print(round(descriptive_scales, 2))
   
 ```
+
+```{r save_data, eval=T, echo=F}
+# double-check sample size before saving
+length(data_final_long$session)
+
+# save data
+write.csv2(data_final_long, file="../../Data/data_final_long_scales_181121.csv")
+
+
+```
+
 
 
 

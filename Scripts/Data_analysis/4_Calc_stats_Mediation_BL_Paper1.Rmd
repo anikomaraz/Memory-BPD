@@ -1,0 +1,162 @@
+---
+title: "Calc_stats_Mediation_BL_Paper1"
+author: "Aniko Maraz"
+date: "November 13, 2018"
+output: html_document
+---
+
+```{r}
+# setwd("/home/aniko/R/Memory-and-BPD")
+
+source("../functions_bpd_memo.R")
+
+# load packages
+packages <- c("ggplot2", "tidyverse", "psych", "nortest", 
+              "apaTables", "jtools", "lavaan", "ggpubr", "semPlot") # note: semPlot (and dependencies) need a lot of memory to be installed!
+load_my_packages(packages)
+
+```
+
+```{r get_data, eval=T, echo=F}
+data_final_bl_scales <- read.csv2("../../Data/data_final_bl_scales_180913.csv")
+
+```
+
+
+
+```{r mediation_latent, eval=T, echo=T}
+library(lavaan)
+
+model_latent <- '
+
+# measurement model (latent variables)   
+        bpd =~    bpd_stress_5.t1 + bpd_alien_6.t1 + bpd_alien_7.t1 + bpd_alien_8.t1 + 
+                  bpd_alien_9.t1 +  bpd_contr_11.t1 + bpd_contr_12.t1 + 
+                  bpd_aggr_13.t1 + bpd_aggr_14.t1 + bpd_aggr_15.t1 + bpd_wb_16.t1 + 
+                  bpd_wb_17.t1 + bpd_abs_18.t1 + bpd_abs_19.t1 + bpd_absExtra_20.t1 +
+                  bpd_absExtra_21.t1 + bpd_stress_2.t1
+        mood =~   cesd_1.t1 + cesd_2.t1 + cesd_3.t1 + cesd_4.t1 + cesd_5.t1 + cesd_6.t1 + 
+                  cesd_7.t1 + cesd_10.t1
+        panas_neg =~ panas_2.t1 + panas_4.t1 + panas_6.t1 + panas_7.t1 + panas_8.t1 + 
+                  panas_11.t1 + panas_13.t1 + panas_18.t1
+        panas_pos =~ panas_1.t1 + panas_3.t1 + panas_5.t1 + panas_9.t1 + panas_10.t1 + 
+                  panas_12.t1 + panas_16.t1 + panas_17.t1
+
+  # regressions  
+    # direct effect
+        panas_neg ~ x*bpd
+        panas_pos ~ y*bpd
+
+  # mediators
+        mood ~ a*bpd
+        EXTR ~ d*bpd        
+        GEN_IMPR.t1 ~ g*bpd
+
+        panas_pos ~ b*mood + e*EXTR + h*GEN_IMPR.t1
+        panas_neg ~ c*mood + f*EXTR + i*GEN_IMPR.t1
+
+  # residual correlations
+        panas_pos ~~ panas_neg
+        
+        bpd_aggr_13.t1 ~~ bpd_aggr_14.t1
+        bpd_stress_1.t1 ~~ bpd_stress_2.t1
+        panas_8.t1 ~~ panas_11.t1
+        panas_6.t1 ~~        panas_13.t1
+        cesd_5.t1 ~~          cesd_8.t1
+        bpd_absExtra_20.t1 ~~ bpd_absExtra_21.t1
+        panas_1.t1 ~~        panas_17.t1
+
+  '
+
+fit_latent <- sem(model_latent, data=data_final_bl_scales)
+# fit_latent_group <- sem(model_latent, data=data_final_bl_scales[data_final_bl_scales$Group_affect == "negative", ])
+
+summary(fit_latent)
+modindices(fit_latent, sort. = T)
+
+fitMeasures(fit_latent, c("cfi", "tli", "rmsea", "srmr"))
+
+
+# calculate measurement invariance
+
+library(semTools)
+measurementInvariance(model=model_latent, data=data_final_bl_scales, group="Group_affect")
+
+
+# due to the very bad fit indices (baseline model fit: CFI=0.620), the manifest model was chosen (see below)
+
+```
+
+
+```{r mediation_manifest, echo=F, eval=T}
+
+model_manifest <- '
+  # regressions  
+    # direct effect
+        PANAS_NEG.t1 ~ x*BPD
+        PANAS_POS.t1 ~ y*BPD
+
+  # mediators
+        CESD.t1 ~ a*BPD
+        EXTR ~ d*BPD        
+        GEN_IMPR.t1 ~ g*BPD
+
+        PANAS_POS.t1 ~ b*CESD.t1 + e*EXTR + h*GEN_IMPR.t1
+        PANAS_NEG.t1 ~ c*CESD.t1 + f*EXTR + i*GEN_IMPR.t1
+
+  # residual correlations
+        PANAS_POS.t1 ~~ PANAS_NEG.t1
+
+  '
+
+fit_manifest <- sem(model_manifest, data=data_final_bl_scales)
+summary(fit_manifest)
+modindices(fit_manifest, sort. = T)
+fitMeasures(fit_manifest, c("cfi", "tli", "rmsea", "srmr"))
+# semPaths(fit_manifest)
+
+```
+
+```{r mediation_manifest_negative}
+# Mediation per valence group
+
+# NEGATIVE
+fit_manifest_group_neg <- sem(model_manifest, data=data_final_bl_scales[data_final_bl_scales$Group_affect == "negative", ])
+summary(fit_manifest_group_neg)
+modindices(fit_manifest_group_neg, sort. = T)
+
+fitMeasures(fit_manifest_group_neg, c("cfi", "tli", "rmsea", "srmr"))
+
+```
+
+```{r mediation_manifest_neutral}
+# Mediation per valence group
+fit_manifest_group_neutral <- sem(model_manifest, data=data_final_bl_scales[data_final_bl_scales$Group_affect == "neutral", ])
+summary(fit_manifest_group_neutral)
+modindices(fit_manifest_group_neutral, sort. = T)
+
+fitMeasures(fit_manifest_group_neutral, c("cfi", "tli", "rmsea", "srmr"))
+# semPaths(fit_manifest)
+```
+
+```{r mediation_manifest_positive}
+# Mediation per valence group
+fit_manifest_group_positive <- sem(model_manifest, data=data_final_bl_scales[data_final_bl_scales$Group_affect == "positive", ])
+summary(fit_manifest_group_positive)
+modindices(fit_manifest_group_positive, sort. = T)
+
+fitMeasures(fit_manifest_group_positive, c("cfi", "tli", "rmsea", "srmr"))
+# semPaths(fit_manifest)
+```
+
+
+
+```{r mediation_manifest_measurementInvar, echo=F, eval=T}
+
+# calculate measurement invariance
+library(semTools)
+measurementInvariance(model=model_manifest, data=data_final_bl_scales, group="Group_affect")
+
+```
+
+

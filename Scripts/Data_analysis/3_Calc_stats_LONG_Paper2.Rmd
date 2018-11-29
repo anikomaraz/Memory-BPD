@@ -2,3 +2,202 @@
 title: "Calculated stats longitudinal Paper2"
 output: html_document
 ---
+
+```{r data_packages, eval=T, echo=T}
+# load packages
+source("../../Scripts/functions_bpd_memo.R")
+packages <- c("tidyverse", "jtools", "reshape2")
+load_my_packages(packages)
+
+
+# load data
+data_final_long_scales <- read.csv2("../../Data/data_final_long_scales_181121.csv")
+
+# double-check sample size
+length(data_final_long_scales$session)
+
+
+```
+
+
+
+```{r visualisation_prepData, eval=T, echo=F}
+# variables where mean is needed
+data_viz_panas_pos <- data_final_long_scales[, c( "PANAS_POS.t1", "PANAS_POS.t2", "PANAS_POS.t3", "PANAS_POS.t4", "session")]
+data_viz_panas_neg <- data_final_long_scales[, c("PANAS_NEG.t1", "PANAS_NEG.t2", "PANAS_NEG.t3", "PANAS_NEG.t4", "session")]
+data_viz_cesd <-  data_final_long_scales[, c("CESD.t1", "CESD.t2", "CESD.t3", "CESD.t4", "session")]
+data_viz_gen_impr <- data_final_long_scales[, c("GEN_IMPR.t1", "GEN_IMPR.t2", "GEN_IMPR.t3", "GEN_IMPR.t4", "session")]
+data_viz_std <- data_final_long_scales[, c("Group_affect", "EXTR", "BPD", "session")]
+
+# prepare the data format ggplot "likes"
+library(stringr)
+data_viz_panas_pos_m <- gather(data = data_viz_panas_pos, "PANAS_POS.t1", "PANAS_POS.t2", "PANAS_POS.t3", "PANAS_POS.t4", key="time", value="panas_pos")
+data_viz_panas_pos_m$time <- str_sub(data_viz_panas_pos_m$time, -1, -1)
+
+data_viz_panas_neg_m <- gather(data = data_viz_panas_neg, "PANAS_NEG.t1", "PANAS_NEG.t2", "PANAS_NEG.t3", "PANAS_NEG.t4", key="time", value="panas_neg")
+data_viz_panas_neg_m$time <- str_sub(data_viz_panas_neg_m$time, -1, -1)
+
+data_viz_cesd_m <- gather(data = data_viz_cesd, "CESD.t1", "CESD.t2", "CESD.t3", "CESD.t4", key="time", value="cesd")
+data_viz_cesd_m$time <- str_sub(data_viz_cesd_m$time, -1, -1)
+
+data_viz_gen_impr_m <- gather(data = data_viz_gen_impr, "GEN_IMPR.t1", "GEN_IMPR.t2", "GEN_IMPR.t3", "GEN_IMPR.t4", key="time", value="gen_impr")
+data_viz_gen_impr_m$time <- str_sub(data_viz_gen_impr_m$time, -1, -1)
+
+# merge dataframes
+data_final_long_scales_viz_m <- list(data_viz_panas_pos_m, data_viz_panas_neg_m, data_viz_cesd_m, 
+                                     data_viz_gen_impr_m, data_viz_std) %>% 
+                                reduce(full_join)
+
+```
+
+```{r standardisation, eval=T}
+std_vars <- c("panas_pos", "panas_neg", "cesd", "gen_impr")
+
+# standardise variables
+for (i in std_vars) {
+  data_final_long_scales_viz_m[, i] <- scale(data_final_long_scales_viz_m[, i], center=T, scale=T)
+}
+
+# create function to calculate mean and sd
+data_mean_sd <- function(varname, groupnames) {
+  require(plyr)
+  summary_function <- function(x, col) {
+    c(mean=mean(x[[col]], na.rm=TRUE), 
+      sd=sd(x[[col]], na.rm = TRUE))
+  }
+  data_sum <- ddply(data_final_long_scales_viz_m, groupnames, .fun=summary_function, varname)
+  data_sum <- rename(data_sum, c("mean" = paste(varname, "mean", sep="_"), "sd" = paste(varname, "sd", sep="_")))
+}
+
+```
+
+```{r mean_sd, eval=T}
+means <- c("time", "panas_pos_mean", "panas_neg_mean", "cesd_mean", "gen_impr_mean")
+sd <- c("time", "panas_pos_sd", "panas_neg_sd", "cesd_sd", "gen_impr_sd")
+
+# for the total sample
+data_mean_sd_panas_pos <- data_mean_sd(varname = "panas_pos", groupnames="time")
+data_mean_sd_panas_neg <- data_mean_sd(varname = "panas_neg", groupnames=c("time"))
+data_mean_sd_cesd <- data_mean_sd(varname = "cesd", groupnames=c("time"))
+data_mean_sd_gen_impr <- data_mean_sd(varname = "gen_impr", groupnames=c("time"))
+
+data_mean_sd <- full_join(data_mean_sd_panas_pos, data_mean_sd_panas_neg, by=c("time")) %>% 
+  full_join(data_mean_sd_cesd, by=c("time")) %>% 
+  full_join(data_mean_sd_gen_impr, by=c("time"))
+
+data_plot_means_melt <- melt(data_mean_sd[, means], id="time", variable_name = "scale")
+rename(data_plot_means_melt, c(value="mean"))
+data_plot_means_melt$scale <- str_sub(data_plot_means_melt$scale, start=1, end=-6)
+
+data_plot_sd_melt <- melt(data_mean_sd[, sd], id="time", variable_name = "scale", 
+                          value="sd")
+rename(data_plot_sd_melt, c(value="sd"))
+data_plot_sd_melt$scale <- str_sub(data_plot_sd_melt$scale, start=1, end=-4)
+
+# join mean and sd
+data_plot_melt <- full_join(data_plot_means_melt, data_plot_sd_melt, by=c("time", "scale"))
+data_plot_melt <- rename(data_plot_melt, c(value.x = "mean", value.y="sd"))
+
+```
+
+
+```{r mean_sd_groups, eval=T}
+# for groups
+means_gr <- c("time", "Group_affect", "panas_pos_mean", "panas_neg_mean", "cesd_mean", "gen_impr_mean")
+sd_gr <- c("time",  "Group_affect", "panas_pos_sd", "panas_neg_sd", "cesd_sd", "gen_impr_sd")
+
+
+# calculate mean and sd
+data_mean_sd_panas_pos_gr <- data_mean_sd(varname = "panas_pos", groupnames=c("time", "Group_affect"))
+data_mean_sd_panas_neg_gr <- data_mean_sd(varname = "panas_neg", groupnames=c("time", "Group_affect"))
+data_mean_sd_cesd_gr <- data_mean_sd(varname = "cesd", groupnames=c("time", "Group_affect"))
+data_mean_sd_gen_impr_gr <- data_mean_sd(varname = "gen_impr", groupnames=c("time", "Group_affect"))
+
+# join data containing mean and sd
+data_mean_sd_gr <- full_join(data_mean_sd_panas_pos_gr, data_mean_sd_panas_neg_gr, by=c("time", "Group_affect")) %>% 
+  full_join(data_mean_sd_cesd_gr, by=c("time", "Group_affect")) %>% 
+  full_join(data_mean_sd_gen_impr_gr, by=c("time", "Group_affect"))
+
+# melt means and sd data separately, keeping the IDs (time and Group_affect)
+data_plot_means_melt_gr <- melt(data_mean_sd_gr[, means_gr], id=c("time", "Group_affect"), variable_name = "scale")
+data_plot_means_melt_gr <- rename(data_plot_means_melt_gr, c(value="mean"))
+data_plot_means_melt_gr$scale <- str_sub(data_plot_means_melt_gr$scale, start=1, end=-6)
+
+data_plot_sd_melt_gr <- melt(data_mean_sd_gr[, sd_gr], id=c("time", "Group_affect"), variable_name = "scale", 
+                          value="sd")
+data_plot_sd_melt_gr <- rename(data_plot_sd_melt_gr, c(value="sd"))
+data_plot_sd_melt_gr$scale <- str_sub(data_plot_sd_melt_gr$scale, start=1, end=-4)
+
+# join mean and sd
+data_plot_melt_gr <- full_join(data_plot_means_melt_gr, data_plot_sd_melt_gr, by=c("time", "scale", "Group_affect"))
+
+
+
+```
+
+
+```{r visualisation_plots, eval=T, echo=T}
+plot_groups <- function(affect = "positive", title="Positive (N=215)", 
+                        n_group=183, groups=FALSE) {
+  
+  # data
+  if(groups == TRUE) {  
+  data = data_plot_melt_gr[data_plot_melt_gr$Group_affect == affect, ] 
+  } else {
+    data= data_plot_melt 
+  }
+  
+  # plotting
+  plot_groups <- ggplot(data=data, aes(x=time, y=mean)) +
+    geom_point(size=2, aes(color=scale)) +  
+    geom_line(aes(group=scale, colour=scale), size=1.5) +
+      scale_color_manual(values=c("purple", "orange", "blue", "red"),  
+                        labels=c("Mood \n(positive to negative)",
+                             "General Impression \n(negtive to positive)",
+                             "PANAS Negative",
+                             "PANAS Positive")) +
+    geom_errorbar(aes(ymin=mean-(sd/sqrt(n_group)), ymax=mean+(sd/sqrt(n_group)), color=scale), 
+                  width=0.2, position=position_dodge()) +
+    
+    ylim(-0.56, 0.7) +
+    theme_apa() + 
+    labs(title=title) +
+    xlab("Follow-up occasion") +
+    ylab("Standardised score")  
+  return(plot_groups)
+  }
+
+
+# TOTAL
+plot_total <- plot_groups(title="Total (N=558)", 
+                          n_group=558, groups=FALSE)
+
+# POSITIVE
+plot_pos <- plot_groups(affect="positive", title="Positive (N=156)", 
+                        n_group = 183, groups=TRUE)
+
+# NEUTRAL
+plot_neu <- plot_groups(affect="neutral", title="Neutral (N=219)", 
+                        n_group=219, groups=TRUE)
+
+# NEGATIVE
+plot_neg <- plot_groups(affect="negative", title="Negative (N=183)", 
+                        n_group=156, groups=TRUE)
+  
+```
+
+
+
+```{r combine_plots}
+# combine plots
+plot_time <- ggarrange(plot_total, plot_pos, plot_neu, plot_neg, 
+          ncol=2, nrow=2, 
+          hjust= -1, vjust=2, common.legend = T)
+
+plot_time
+
+ggsave("plot_time.jpg", plot=plot_time, 
+       width=30, height=20, units="cm")
+
+```
+

@@ -9,20 +9,21 @@ output: html_document
 source("../functions_bpd_memo.R")
 
 # load packages
-packages <- c("ggplot2", "tidyverse", "lubridate", "data.table", "psych", "nortest")
+packages <- c("ggplot2", "tidyverse", "psych", "nortest", "sjstats",
+              "apaTables", "jtools", "lavaan", "ggpubr", "semPlot") # note: semPlot (and dependencies) need a lot of memory to be installed!
 load_my_packages(packages)
 
 ```
 
 ```{r get_data, eval=T, echo=F}
-data_final_bl_scales <- read.csv2("../../Data/data_final_bl_scales2.csv")
+data_final_bl_scales <- read.csv2("../../Data/data_final_bl_scales_180913.csv")
 
 ```
 
 ```{r normality_check, eval=T, echo=T}
 scales_continous <- c("BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
             "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
-            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "BPD_abs2")
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs")
 data_scales <- data_final_bl_scales[, scales_continous]
 
 ad.test(data_final_bl_scales$BPD_screen)$statistic[[1]]
@@ -46,47 +47,234 @@ print(round(df_normal_distribution, 2))
 ```
 
 
-```{r check_manipulation_group_PANAS, evel=T, echo=T}
-# this is the "official" measure
-group_diff <- aov(PANAS.t1 ~ Group_affect, data=data_final_bl)
-summary(group_diff)
+```{r bpdGroup_equality}
+scales_continous_group <- c("BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
+            "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs", "EXTR", "GEN_IMPR.t1", "Group_affect")
+data_scales_continous_group <- data_final_bl_scales[, scales_continous_group]    
 
-# out of interest, I am testing two other scales (positive-only and negative-only)
-group_diff_neg <- aov(PANAS_NEG.t1 ~ Group_affect, data=data_final_bl)
-summary(group_diff_neg)
+df_anova_Gr <- data.frame("P" = numeric(), "F" = numeric(), 
+                          "Neu-Neg_diff" = numeric(), "Neu-Neg_p" = numeric(), 
+                          "Neg-Pos_diff" = numeric(), "Neg-Pos_p" = numeric(), 
+                          "Pos-Neu_diff" = numeric(), "Pos-Neu_p" = numeric())
 
-group_diff_pos <- aov(PANAS_POS.t1 ~ Group_affect, data=data_final_bl)
-summary(group_diff_pos)
-
-```
-```{r plot, eval=T, echo=T}
-titles <- c("")
-plot_bpd_panas <-  ggplot(data_final_bl_scales, aes(x=BPD, y=PANAS.t1, color=Group_affect)) +
-  geom_point() + 
-  geom_smooth() +
-  theme_light() +
-  scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
-  labs(color = "Group affect", x="Borderline Personality Disorder", y="Affect (PANAS)")
-plot_bpd_panas
+df_anova_Gr_calc <- 
+  for (i in 1:(ncol(data_scales_continous_group)-1)) {
+  anovaresult <- anova(aov(data_scales_continous_group[, i] ~ data_scales_continous_group$Group_affect))
+  posthocresult <- TukeyHSD(aov(data_scales_continous_group[, i] ~ Group_affect, data = data_scales_continous_group))
+  newRow <- list(anovaresult$`Pr(>F)`[1], 
+                  anovaresult$`F value`[1], 
+                  posthocresult$Group_affect[1, 1], # diff between neu-neg
+                  posthocresult$Group_affect[1, 4], # p value for neu-neg
+                  posthocresult$Group_affect[2, 1], # diff between neg-pos
+                  posthocresult$Group_affect[2, 4], # p value for neg-pos
+                  posthocresult$Group_affect[3, 1], # diff between pos-neu
+                  posthocresult$Group_affect[3, 4]) # p value for pos-neu
   
-plot_bpd_cesd.t1 <-  ggplot(data_final_bl_scales, aes(x=BPD, y=CESD.t1, color=Group_affect)) +
-  geom_point() + 
-  geom_smooth() +
-  theme_light() +
-  scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
-  labs(color = "Group affect", x="Borderline Personality Disorder", y="Mood (PANAS)")
-plot_bpd_cesd.t1
+        df_anova_Gr[names(data_scales_continous_group[i]), ] <- newRow
+  }
 
-plot_bpd_extremity <-  ggplot(data_final_bl_scales, aes(x=BPD, y=EXTR, color=Group_affect)) +
-  geom_point() + 
-  geom_smooth() +
-  theme_light() +
-  scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
-  labs(color = "Group affect", x="Borderline Personality Disorder", y="Extremity of Response")
-plot_bpd_extremity  
+print(round(df_anova_Gr, 3))
 
+# ANOVA for PANAS Pos/Neg effect size 
+fit_pos <- anova(aov(PANAS_POS.t1 ~ Group_affect, data=data_scales_continous_group)) 
+cohens_f(fit_pos)
+
+fit_neg <- anova(aov(PANAS_NEG.t1 ~ Group_affect, data=data_scales_continous_group))
+cohens_f(fit_neg)
+
+```
+
+```{r panas_group_diff, eval=T, echo=T}
+# closer look at group differences on PANAS
+aggregate(data_final_bl_scales[, c("PANAS_NEG.t1", "PANAS_POS.t1", "PANAS.t1")], by=list(data_final_bl_scales$Group_affect), FUN=mean)
+aggregate(data_final_bl_scales[, c("PANAS_NEG.t1", "PANAS_POS.t1", "PANAS.t1")], by=list(data_final_bl_scales$Group_affect), FUN=sd)
+
+
+# visualise
+data_summary <- function(x) {
+   m <- mean(x)
+   se_low <- m-sd(x)/sqrt(674)
+   se_up <- m+sd(x)/sqrt(674)
+   return(c(y=m, ymin=se_low, ymax=se_up))
+}
+
+plot_manipulation <- function(panas_scale, title) {
+  my_comparisons <- list(c("positive", "negative"), c("positive", "neutral"), c("negative", "neutral"))
+  p <- ggplot(data_final_bl_scales, aes(x = Group_affect, y = panas_scale) ) +
+    geom_boxplot(aes(fill=Group_affect)) +
+    scale_fill_manual(values=c("blue", "green", "red")) +
+    stat_summary(fun.y = mean, geom="point", size=2, color="black") +
+    stat_summary(fun.data=data_summary) +
+    stat_compare_means(comparisons=my_comparisons, label="p.signif", 
+                       symnum.args = list(cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), 
+                                          symbols = c("***", "**", "*", "+", "n.s."))) +
+    theme_apa() +
+    theme(axis.text.x = element_blank()) +
+    ylab(label=title) +
+    xlab(label="Group affect") +
+    ylim(5, 90)
+  return(p)
+}
+
+# combine plots
+plot_group_diff_panas <- ggarrange(
+  plot_manipulation(panas_scale=data_final_bl_scales$PANAS_NEG.t1, title="PANAS Negative"), 
+  plot_manipulation(panas_scale=data_final_bl_scales$PANAS_POS.t1, title="PANAS Positive"),
+          hjust=0.8, vjust=0.5,
+          common.legend = T)
+
+plot_group_diff_panas
+
+ggsave("plot_manipulation.jpg", plot=plot_group_diff_panas, 
+       width=20, height=10, units="cm")
 
 
 ```
+
+
+```{r corr_matrix, eval=T, echo=T}
+# PANAS (sum): select variables for the correlation table
+corr_variables <- c("PANAS.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "BPD", "EXTR", "CESD.t1", "GEN_IMPR.t1", "age.t1")
+corr_table <- data_final_bl_scales[, corr_variables] 
+corr_table <- rename(corr_table, "Affect (PANAS)" = PANAS.t1, 
+                   "Extremity" = EXTR, 
+                    "Negative mood (CESD)" = CESD.t1, 
+                   "General Impression" = GEN_IMPR.t1, 
+                   "Age" = age.t1)
+
+apa.cor.table(corr_table, filename="Table1_panas_corr.doc", table.number = 1, landscape = F)
+
+# PANAS (negative): select variables for the correlation table
+corr_variables <- c("PANAS_NEG.t1", "BPD", "EXTR", "CESD.t1", "GEN_IMPR.t1", "age.t1")
+corr_table <- data_final_bl_scales[, corr_variables] 
+corr_table <- rename(corr_table, "Affect (Negative PANAS)" = PANAS_NEG.t1, 
+                   "Extremity" = EXTR, 
+                    "Negative mood (CESD)" = CESD.t1, 
+                   "General Impression" = GEN_IMPR.t1, 
+                   "Age" = age.t1)
+
+apa.cor.table(corr_table, filename="Table1_panasNeg_corr.doc", table.number = 1, landscape = F)
+
+# PANAS (negative): select variables for the correlation table
+corr_variables <- c("PANAS_POS.t1", "BPD", "EXTR", "CESD.t1", "GEN_IMPR.t1", "age.t1")
+corr_table <- data_final_bl_scales[, corr_variables] 
+corr_table <- rename(corr_table, "Affect (Negative PANAS)" = PANAS_POS.t1, 
+                   "Extremity" = EXTR, 
+                    "Negative mood (CESD)" = CESD.t1, 
+                   "General Impression" = GEN_IMPR.t1, 
+                   "Age" = age.t1)
+
+apa.cor.table(corr_table, filename="Table1_panasPos_corr.doc", table.number = 1, landscape = F)
+
+```
+
+```{r corr_matrix_group_panasSum, eval=T, echo=T}
+# PANAS Sum: select variables for the correaltion table + affect group 
+corr_table_gr <- data_final_bl_scales[, c("Group_affect", "PANAS.t1", "BPD", 
+                                          "EXTR", "CESD.t1", "GEN_IMPR.t1", "age.t1")] 
+corr_table_gr <- rename(corr_table_gr, "Affect (PANAS)" = PANAS.t1, 
+                    "Extremity" = EXTR, 
+                    "Negative mood (CESD)" = CESD.t1, 
+                    "General Impression" = GEN_IMPR.t1, 
+                    "Age" = age.t1)
+
+## per valence group
+# positive
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "positive", ], 
+              filename="Table1_1panas_corr_group_Pos.doc", landscape = F)
+
+# neutral
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "neutral", ], 
+              filename="Table1_1panas_corr_group_Neu.doc", landscape = F)
+
+# negative
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "negative", ], 
+              filename="Table1_1panas_corr_group_Neg.doc", landscape = F)
+```
+
+```{r corr_matrix_group_panasNeg, eval=T, echo=}
+# PANAS Positive / Negative scale: select variables for the correaltion table + affect group 
+corr_table_gr <- data_final_bl_scales[, c("Group_affect", "PANAS_NEG.t1", "PANAS_POS.t1", "BPD", 
+                                          "EXTR", "CESD.t1", "GEN_IMPR.t1", "age.t1")] 
+corr_table_gr <- rename(corr_table_gr, 
+                        "Affect (PANAS Negative)" = PANAS_NEG.t1, 
+                        "Affect (PANAS Positive)" = PANAS_POS.t1,
+                        "Extremity" = EXTR, 
+                        "Negative mood (CESD)" = CESD.t1, 
+                        "General Impression" = GEN_IMPR.t1, 
+                        "Age" = age.t1)
+
+## per valence group
+# positive
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "positive", ], 
+              filename="Table1_panasPosNeg_corr_group_Pos.doc", landscape = F)
+
+# neutral
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "neutral", ], 
+              filename="Table1_panasPosNeg_corr_group_Neu.doc", landscape = F)
+
+# negative
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "negative", ], 
+              filename="Table1_panasPosNeg_corr_group_Neg.doc", landscape = F)
+```
+
+
+
+
+```{r plot, eval=T, echo=T}
+plot_bpd_y <- function (data=data_final_bl_scales, y=y, y_title=y_title, breaks=breaks) {
+plot <- ggplot(data, aes_string(x="BPD", y=y, color="Group_affect")) +
+ geom_point(alpha=0.7) + geom_jitter() +
+  geom_smooth(aes(fill=Group_affect)) +
+  theme_apa(legend.font.size = 20) +
+  scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
+  scale_fill_manual(values=c("positive" = "red", "neutral" = "green", "negative" = "blue")) +
+  scale_y_continuous(breaks=breaks) +
+  labs(color = "Group affect", x="BPD score (MBPD)", y=y_title) + 
+  guides(fill=F, color=guide_legend(override.aes=list(fill=NA)))
+return(plot)
+}
+
+# plot PANAS / Negative scale
+plot_panas_neg <- plot_bpd_y(y="PANAS_NEG.t1", y_title="Affect \n(PANAS / Negative)", breaks=seq(-60, 60, 10))
+
+# plot PANAS / Negative scale
+plot_panas_pos <- plot_bpd_y(y="PANAS_POS.t1", y_title="Affect \n(PANAS / Positive)", breaks=seq(-60, 60, 10))
+
+# plot CESD
+plot_cesd <- plot_bpd_y(y="CESD.t1", y_title="Negative mood \n", breaks=seq(0, 50, 10))
+
+# plot Extremity
+plot_extr <- plot_bpd_y(y="EXTR", y_title="Extremity of Response", breaks=seq(0, 40, 5))
+
+# plot General impression
+plot_gen_impr <- plot_bpd_y(y="GEN_IMPR.t1", y_title="General impression \nof the video (positivity)", breaks=c(1:7))
+
+
+# combine plots
+plot_bpd_y <- ggarrange(plot_panas_neg, plot_panas_pos, plot_cesd, plot_extr, plot_gen_impr, 
+          labels = c("A", "B", "C", "D", "E"), 
+          ncol=2, nrow=3, 
+          # ncol=3, nrow=2, # for presentation
+          hjust= -1, vjust=2, common.legend = T)
+
+plot_bpd_y
+
+# save plot
+ggsave("fig1_distribution_mediators.jpg", plot=plot_bpd_y, 
+       # width=30, height=33, units="cm")
+       width = 30, height=25, units="cm") # for presentation
+```
+
+```{r regression, eval=T, echo=T}
+fit <-  lm(PANAS.t1 ~ EXTR + BPD + CESD.t1 + GEN_IMPR.t1, data=data_final_bl_scales)
+apa.reg.table(fit, filename = "Table2_regression.doc")
+
+```
+
+
+
+
 
 

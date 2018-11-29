@@ -1,0 +1,156 @@
+---
+title: "5_Calc_stats_Mediation_BL_Paper1_LEC"
+author: "Aniko Maraz"
+date: "November 20, 2018"
+output: html_document
+---
+
+```{r}
+# setwd("/home/aniko/R/Memory-and-BPD")
+
+source("../functions_bpd_memo.R")
+
+# load packages
+packages <- c("ggplot2", "tidyverse", "psych", "nortest", 
+              "apaTables", "jtools", "lavaan", "ggpubr", "semPlot") # note: semPlot (and dependencies) need a lot of memory to be installed!
+load_my_packages(packages)
+
+```
+
+```{r get_data, eval=T, echo=F}
+data_final_bl_scales <- read.csv2("../../Data/data_final_bl_scales_181120.csv")
+
+```
+
+## Calculate main statistics without people who reported trauma in the past 7 days based on the Life Events Checklist
+```{r calc_lec, eval=T, echo=T}
+# This is how much trauma they reported (items positive out of 17)
+table(data_final_bl_scales$LEC.t1)
+
+# create a masking variable for people who experienced and who did not experience trauma
+data_final_bl_scales$LEC_pos_neg.t1 <- ifelse(data_final_bl_scales$LEC.t1 == 0, FALSE, TRUE)
+
+# create data with LEC-negative participants only
+data_final_bl_scales_lecNeg <- data_final_bl_scales[data_final_bl_scales$LEC_pos_neg.t1 == FALSE, ]
+dim(data_final_bl_scales_lecNeg)
+
+```
+
+```{r anova, eval=T, echo=T}
+# condition check, ANOVA
+anova_neg <-aov(data_final_bl_scales_lecNeg$PANAS_NEG.t1 ~ data_final_bl_scales_lecNeg$Group_affect)
+anova(anova_neg)
+TukeyHSD(anova_neg)
+aggregate(data_final_bl_scales_lecNeg$PANAS_NEG.t1, list(data_final_bl_scales_lecNeg$Group_affect), FUN=mean)
+
+anova_pos <-aov(data_final_bl_scales_lecNeg$PANAS_POS.t1 ~ data_final_bl_scales_lecNeg$Group_affect)
+anova(anova_pos)
+TukeyHSD(anova_pos)
+aggregate(data_final_bl_scales_lecNeg$PANAS_POS.t1, list(data_final_bl_scales_lecNeg$Group_affect), FUN=mean)
+
+```
+
+```{r correlation, eval=T, echo=T}
+# PANAS (negative): select variables for the correlation table
+corr_variables <- c("PANAS_NEG.t1", "BPD", "EXTR", "CESD.t1", "GEN_IMPR.t1", "age.t1")
+corr_table <- data_final_bl_scales_lecNeg[, corr_variables] 
+corr_table <- rename(corr_table, "Affect (Negative PANAS)" = PANAS_NEG.t1, 
+                   "Extremity" = EXTR, 
+                    "Negative mood (CESD)" = CESD.t1, 
+                   "General Impression" = GEN_IMPR.t1, 
+                   "Age" = age.t1)
+
+apa.cor.table(corr_table, filename="Table1_panasNeg_corr_LECnegative.doc", landscape = F)
+
+# PANAS (negative): select variables for the correlation table
+corr_variables <- c("PANAS_POS.t1", "BPD", "EXTR", "CESD.t1", "GEN_IMPR.t1", "age.t1")
+corr_table <- data_final_bl_scales_lecNeg[, corr_variables] 
+corr_table <- rename(corr_table, "Affect (Negative PANAS)" = PANAS_POS.t1, 
+                   "Extremity" = EXTR, 
+                    "Negative mood (CESD)" = CESD.t1, 
+                   "General Impression" = GEN_IMPR.t1, 
+                   "Age" = age.t1)
+
+apa.cor.table(corr_table, filename="Table1_panasPos_corr_LECnegative.doc", landscape = F)
+
+
+# PANAS Sum: select variables for the correaltion table + affect group 
+corr_table_gr <- data_final_bl_scales_lecNeg[, c("Group_affect", "PANAS.t1", "BPD", 
+                                                "EXTR", "CESD.t1", "GEN_IMPR.t1", "age.t1")] 
+corr_table_gr <- rename(corr_table_gr, "Affect (PANAS)" = PANAS.t1, 
+                    "Extremity" = EXTR, 
+                    "Negative mood (CESD)" = CESD.t1, 
+                    "General Impression" = GEN_IMPR.t1, 
+                    "Age" = age.t1)
+
+## per valence group
+# positive
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "positive", ], 
+              filename="Table1_1panas_corr_group_Pos_LECnegative.doc", landscape = F)
+
+# neutral
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "neutral", ], 
+              filename="Table1_1panas_corr_group_Neu_LECnegative.doc", landscape = F)
+
+# negative
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "negative", ], 
+              filename="Table1_1panas_corr_group_Neg_LECnegative.doc", landscape = F)
+
+
+# PANAS Positive / Negative scale: select variables for the correaltion table + affect group 
+corr_table_gr <- data_final_bl_scales_lecNeg[, c("Group_affect", "PANAS_NEG.t1", "PANAS_POS.t1", "BPD", 
+                                          "EXTR", "CESD.t1", "GEN_IMPR.t1", "age.t1")] 
+corr_table_gr <- rename(corr_table_gr, 
+                        "Affect (PANAS Negative)" = PANAS_NEG.t1, 
+                        "Affect (PANAS Positive)" = PANAS_POS.t1,
+                        "Extremity" = EXTR, 
+                        "Negative mood (CESD)" = CESD.t1, 
+                        "General Impression" = GEN_IMPR.t1, 
+                        "Age" = age.t1)
+
+## per valence group
+# positive
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "positive", ], 
+              filename="Table1_panasPosNeg_corr_group_Pos_LECnegative.doc", landscape = F)
+
+# neutral
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "neutral", ], 
+              filename="Table1_panasPosNeg_corr_group_Neu_LECnegative.doc", landscape = F)
+
+# negative
+apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "negative", ], 
+              filename="Table1_panasPosNeg_corr_group_Neg_LECnegative.doc", landscape = F)
+
+```
+
+
+```{r mediation, eval=T, echo=T}
+
+model_manifest <- '
+  # regressions  
+    # direct effect
+        PANAS_NEG.t1 ~ x*BPD
+        PANAS_POS.t1 ~ y*BPD
+
+  # mediators
+        CESD.t1 ~ a*BPD
+        EXTR ~ d*BPD        
+        GEN_IMPR.t1 ~ g*BPD
+
+        PANAS_POS.t1 ~ b*CESD.t1 + e*EXTR + h*GEN_IMPR.t1
+        PANAS_NEG.t1 ~ c*CESD.t1 + f*EXTR + i*GEN_IMPR.t1
+
+  # residual correlations
+        PANAS_POS.t1 ~~ PANAS_NEG.t1
+
+  '
+
+fit_manifest <- sem(model_manifest, data=data_final_bl_scales_lecNeg)
+summary(fit_manifest)
+modindices(fit_manifest, sort. = T)
+fitMeasures(fit_manifest, c("cfi", "tli", "rmsea", "srmr"))
+
+```
+
+
+

@@ -191,21 +191,26 @@ data_clean <- data_clean[data_clean$screen_positive == T, ]
 N5_screenpostive <- length(data_clean$session)
 
 # check for group difference among those who passed the screening between those who completed P1 and those who did not 
-BPD_scrPos_compP1_vs_notCompP1 <- t.test(data_clean$BPD_screen ~ !is.na(data_clean$panas_1.t1), alternative= "two.sided")
+# BPD_scrPos_compP1_vs_notCompP1 <- t.test(data_clean$BPD_screen ~ !is.na(data_clean$panas_1.t1), alternative= "two.sided")
 
 ## participants with no missing data on PANAS at t1
 data_clean <- data_clean[!is.na(data_clean$panas_1.t1),]
 N6_Part1_compl <- length(data_clean$session)
 
+## Group 2 unfortunately received the wrong link to the video (same as for Group 1), therefore they have to be excluded from data analysis
+N7_Group2_excluded <- sum(data_clean$Group.t1 == "2")
+data_clean <- data_clean[data_clean$Group.t1 != "2", ]
+N8_Part1_compl_noGr2 <- length(data_clean$session)
+
 ## participants who completed Part 2
-N7_Part2_compl <- sum(!is.na(data_clean$gen_impr_test.t2))
+N9_Part2_compl <- sum(!is.na(data_clean$gen_impr_test.t2))
 
 ## participants who completed Part 3
-N8_Part3_compl <- sum(!is.na(data_clean$gen_impr_test.t3))
+N10_Part3_compl <- sum(!is.na(data_clean$gen_impr_test.t3))
 
 ## participants who completed Part 4, meaning they have full data (t1-t4)
 data_clean$session_full <- !is.na(data_clean[,"panas_1.t4"])
-N9_Part4_compl_full <- sum(data_clean$session_full)
+N11_Part4_compl_full <- sum(data_clean$session_full)
 
 # check for group difference among those who completed t4 vs. those who only did t1
 BPD__compP1_vs_compP4 <- t.test(data_clean$BPD_screen ~ data_clean$session_full, alternative= "two.sided")
@@ -218,9 +223,11 @@ sample_N <- list(
   "participants who passed the screening attention check (screening for MTurk only):" = N4_screen_att_check_passed, 
   "participants screened positive" = N5_screenpostive, 
   "participiants with no missing data on T1 (PANAS) meaning they did Part1  (BASELINE)" = N6_Part1_compl,
-  "participiants with no missing data on T2 (GeneralImpr on Test video) meaning they did Part2" = N7_Part2_compl,
-  "participiants with no missing data on T3 (GeneralImpr on Test video) meaning they did Part3" = N8_Part3_compl,
-  "participants who have full data (t1-t4) (LONGITUDINAL)" = N9_Part4_compl_full) # longitudinal data
+  "participants who had to be excluded (Group 2) due to wrong link" = N7_Group2_excluded,
+  "participants with Part 1 baseline data, no Group 2" = N8_Part1_compl_noGr2, 
+  "participiants with no missing data on T2 (GeneralImpr on Test video) meaning they did Part2" = N9_Part2_compl,
+  "participiants with no missing data on T3 (GeneralImpr on Test video) meaning they did Part3" = N10_Part3_compl,
+  "participants who have full data (t1-t4) (LONGITUDINAL)" = N11_Part4_compl_full) # longitudinal data
 
 sample_N
 
@@ -253,13 +260,15 @@ vid2_watch_time <- data_time %>%
     spread(key=item_name.t1, value=created.t1) 
 
 # calculate watch time
-vid1_watch_time$vid1_difftime <- difftime(vid1_watch_time$page_after_trialVid_checktest, vid1_watch_time$page_after_trialVid, units = "secs")
-vid2_watch_time$vid2_difftime <- difftime(vid2_watch_time$page_after_testVidCheckQs, vid2_watch_time$page_after_testVid,  units = "secs")
+vid1_watch_time$vid1_difftime <- difftime(vid1_watch_time$page_after_trialVid_checktest, vid1_watch_time$page_after_trialVid, 
+                                          units = "secs")
+vid2_watch_time$vid2_difftime <- difftime(vid2_watch_time$page_after_testVidCheckQs, vid2_watch_time$page_after_testVid,  
+                                          units = "secs")
 
 # merge this data with the clean dataset
 data_clean <- data_clean %>% 
-  full_join(vid1_watch_time[, c("session", "vid1_difftime")], by="session") %>% 
-  full_join(vid2_watch_time[, c("session", "vid2_difftime")], by="session") 
+  left_join(vid1_watch_time[, c("session", "vid1_difftime")], by="session") %>% 
+  left_join(vid2_watch_time[, c("session", "vid2_difftime")], by="session") 
 
 # calculate if watch time is less than the length of the video (=error)
 # for Vid1 (same for everyone)
@@ -362,6 +371,7 @@ exclude_errors_long <- list(
 exclude_errors_long
 
 ```
+
 ```{r check_data_quality}
 # for baseline data
 round(prop.table(table(data_final_bl$att_check_sum_t1)) * 100, 2)

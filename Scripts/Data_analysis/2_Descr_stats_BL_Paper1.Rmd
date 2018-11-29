@@ -18,7 +18,8 @@ overwrite_data = FALSE  # if TRUE, then the final data will be saved (overwritte
 
 ```{r get_format_data, eval=T, echo=F}
 data_final_bl <- read.csv2("../../Data/data_final_bl_180910.csv")
- 
+
+# set formats
 cols_to_factor <- c("gender.sc", "gender.t1", "edu_years_compl.t1", "edu_highest.t1", "SES_subj.t1", "national.t1", 
                     "work.t1", "study.t1", "relationship.t1", "relationship_qual.t1", 
                     "English_first.sc", "English_level.sc", "English_first.t1", "English_level.t1", 
@@ -96,7 +97,7 @@ table(data_final_bl$Group.t1)
 
 # check correlation
 pairs.panels(data_final_bl[, c("bpd_absExtra_20.t1", "bpd_absExtra_21.t1", "bpd_abs_18.t1", "bpd_abs_19.t1")], scale=TRUE)
-# therefore the initial items ("bpd_absExtra_20.t1" and "bpd_absExtra_20.t1") are kept for the scale.
+# therefore the initial items ("bpd_absExtra_20.t1" and "bpd_absExtra_21.t1") are kept for the scale.
 
 ```
 
@@ -111,6 +112,8 @@ data_final_bl$Group_affect <- factor(data_final_bl$Group_affect, levels=c("1" = 
 data_final_bl$BPD_screen <- rowSums(data_final_bl[, grep("^bpd_s\\d+", colnames(data_final_bl), value=T)], na.rm=F)
 
 ## MOOD:   CESD, 10 items x5 response => range: 10-50
+# recode item 5 & 8 
+data_final_bl[, c("cesd_5.t1", "cesd_8.t1")] <- 6 - data_final_bl[, c("cesd_5.t1", "cesd_8.t1")]
 data_final_bl$CESD.t1 <-  rowSums(data_final_bl[,grep("^cesd_.+.t1", colnames(data_final_bl), value=T)], na.rm=F)
 
 ## VIDEO AFFECTS: PANAS 20 items, x7 response => range: 20-140, 10 items for positive, 10 items for negative affect
@@ -139,6 +142,14 @@ data_final_bl$IPIP_agreeableness <- rowSums(data_final_bl[, grep("^ipip_agree", 
 data_final_bl$IPIP_neuroticism <- rowSums(data_final_bl[, grep("^ipip_neuro", names(data_final_bl), value=T)], na.rm=F)
 
 ## BORDERLINE 2 (BORNOVALOVA ET AL)
+# recode coded items
+bpd_recode <- grep("^bpd_.+R", colnames(data_final_bl), value=T)
+data_final_bl[, bpd_recode] <- 5 - data_final_bl[, bpd_recode]
+data_final_bl <- 
+  data_final_bl %>% rename(bpd_contr_10.t1 = bpd_contr_10R.t1, 
+               bpd_contr_11.t1 = bpd_contr_11R.t1,
+               bpd_wb_16.t1 = bpd_wb_16R.t1)
+
 data_final_bl$BPD <- rowSums(data_final_bl[, grep("^bpd_\\D{3,}", colnames(data_final_bl), value=T)], na.rm=F)
 data_final_bl$BPD_stress <- rowSums(data_final_bl[, grep("^bpd_stress+", colnames(data_final_bl), value=T)], na.rm=F)
 data_final_bl$BPD_alien <- rowSums(data_final_bl[, grep("^bpd_alien+", colnames(data_final_bl), value=T)], na.rm=F)
@@ -150,10 +161,10 @@ data_final_bl$BPD_abs <- rowSums(data_final_bl[, grep("^bpd_absExtra_+", colname
 ## LIFE EVENT CHECKLIST
 lec_items.t1 <- c(grep("lec_.+.t1$", names(data_final_bl), value=T))
 data_final_bl$LEC_positive.t1 <- ifelse(data_final_bl[ , lec_items.t1] == "1" | data_final_bl[ , lec_items.t1] == "2", T, F)
+data_final_bl$LEC.t1 <- rowSums(data_final_bl$LEC_positive.t1)
 
 ## EXTREMITY OF THE RESPONSE
 bfi_items <- colnames(data_final_bl[, grep("^ipip_", colnames(data_final_bl), value=F)])
-
 for (i in bfi_items) {
   data_final_bl[, paste0("extr_", i)] <- recode(data_final_bl[, i], "1" = 2, "2" = 1, "3" = 0, "4" = 1, "5" = 2)
   }
@@ -170,8 +181,19 @@ data_final_bl$GEN_IMPR.t1 <- rowSums(data_final_bl[, gr_gen_impr_items], na.rm=T
 
 
 ```{r}
-# calculate scale reliability
-alpha(data_final_bl[, grep("^bpd_s\\d+", colnames(data_final_bl), value=T)])
+# calculate scale reliability (raw alpha)
+# alpha(data_final_bl[, grep("^bpd_s\\d+", colnames(data_final_bl), value=T)])
+reliability_list <- list(
+  "CRONBACH ALPHAS (raw)", 
+  "BPD" = round(alpha(data_final_bl[, grep("^bpd_\\D{3,}", colnames(data_final_bl), value=T)])[[1]][[1]], 2),
+  "CESD" = round(alpha(data_final_bl[, grep("^cesd_\\d+", colnames(data_final_bl), value=T)])[[1]][[1]], 2),
+  "PANAS positive" = round(alpha(data_final_bl[, panas_positive_items])[[1]][[1]], 2),
+  "PANAS negative" = round(alpha(data_final_bl[, panas_negative_items])[[1]][[1]], 2)
+  )
+
+reliability_list
+
+
 
 ```
 
@@ -203,37 +225,15 @@ print(round(descriptive_scales, 2))
 
 ```
 
-```{r bpdGroup_equality}
-scales_continous_group <- c("BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.t1", "PANAS.t1", 
-            "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
-            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs1", "EXTR", "GEN_IMPR.t1", "Group_affect")
-data_scales_continous_group <- data_final_bl[, scales_continous_group]    
+```{r norm_plot}
+par(mfrow=c(4, 5))
+for (i in scales_continous) {
+qqnorm(data_final_bl[, i], main = i)
+}
 
-df_anova_Gr <- data.frame("P" = numeric(), "F" = numeric(), 
-                          "Neu-Pos_diff" = numeric(), "Neu-Pos_p" = numeric(), 
-                          "Neg-Pos_diff" = numeric(), "Neg-Pos_p" = numeric(), 
-                          "Neg-Neu_diff" = numeric(), "Neg-Neu_p" = numeric())
+```
 
-df_anova_Gr_calc <- 
-  for (i in 1:(ncol(data_scales_continous_group)-1)) {
-  anovaresult <- anova(aov(data_scales_continous_group[, i] ~ Group_affect, data = data_scales_continous_group))
-  posthocresult <- TukeyHSD(aov(data_scales_continous_group[, i] ~ Group_affect, data = data_scales_continous_group))
-  newRow <- list(anovaresult$`Pr(>F)`[1], 
-                  anovaresult$`F value`[1], 
-                  posthocresult$Group_affect[1, 1], # diff between neu-pos
-                  posthocresult$Group_affect[1, 4], # p value for neu-pos
-                  posthocresult$Group_affect[2, 1], # diff between neg-pos
-                  posthocresult$Group_affect[2, 4], # p value for neg-pos
-                  posthocresult$Group_affect[3, 1], # diff between neg-neu
-                  posthocresult$Group_affect[3, 4]) # p value for neg-neu
-  
-        df_anova_Gr[names(data_scales_continous_group[i]), ] <- newRow
-  }
 
-print(round(df_anova_Gr, 2))
-
-# closer look at group differences on PANAS
-aggregate(data_final_bl[, c("PANAS_NEG.t1", "PANAS_POS.t1", "PANAS.t1")], by=list(data_final_bl$Group_affect), FUN=mean)
 
 ```
 
@@ -256,17 +256,14 @@ ggplot(data=data_final_bl, aes(BPD, GEN_IMPR.t1, fill=Group_affect)) +
   geom_point() +  geom_jitter() +  geom_smooth() +
   theme_linedraw()
 
-
 ```
-
-
 
 
 ```{r save_final_data}
 
 ## save final  data
 if (overwrite_data) {
-  write.csv2(data_final_bl, file="../../Data/data_final_bl_scales_180913.csv")
+  write.csv2(data_final_bl, file="Data/data_final_bl_scales_181120.csv")
 }
 
 
