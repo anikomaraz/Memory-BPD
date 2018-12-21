@@ -143,9 +143,9 @@ plot_groups <- function(affect = "positive", title="Positive (N=215)",
   # data
   if(groups == TRUE) {  
   data = data_plot_melt_gr[data_plot_melt_gr$Group_affect == affect, ] 
-  } else {
-    data= data_plot_melt 
-  }
+    } else {
+  data= data_plot_melt 
+          }
   
   # plotting
   plot_groups <- ggplot(data=data, aes(x=time, y=mean)) +

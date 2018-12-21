@@ -150,6 +150,9 @@ summary(fit_manifest)
 modindices(fit_manifest, sort. = T)
 fitMeasures(fit_manifest, c("cfi", "tli", "rmsea", "srmr"))
 
+
+
+
 ```
 
 

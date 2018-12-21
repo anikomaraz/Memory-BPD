@@ -110,8 +110,9 @@ model_manifest <- '
   '
 
 fit_manifest <- sem(model_manifest, data=data_final_bl_scales)
-summary(fit_manifest)
-modindices(fit_manifest, sort. = T)
+summary(fit_manifest, standardized = TRUE)
+parameterestimates(fit_manifest)
+# modindices(fit_manifest, sort. = T)
 fitMeasures(fit_manifest, c("cfi", "tli", "rmsea", "srmr"))
 # semPaths(fit_manifest)
 
@@ -123,7 +124,7 @@ fitMeasures(fit_manifest, c("cfi", "tli", "rmsea", "srmr"))
 # NEGATIVE
 fit_manifest_group_neg <- sem(model_manifest, data=data_final_bl_scales[data_final_bl_scales$Group_affect == "negative", ])
 summary(fit_manifest_group_neg)
-modindices(fit_manifest_group_neg, sort. = T)
+# modindices(fit_manifest_group_neg, sort. = T)
 
 fitMeasures(fit_manifest_group_neg, c("cfi", "tli", "rmsea", "srmr"))
 
@@ -133,7 +134,7 @@ fitMeasures(fit_manifest_group_neg, c("cfi", "tli", "rmsea", "srmr"))
 # Mediation per valence group
 fit_manifest_group_neutral <- sem(model_manifest, data=data_final_bl_scales[data_final_bl_scales$Group_affect == "neutral", ])
 summary(fit_manifest_group_neutral)
-modindices(fit_manifest_group_neutral, sort. = T)
+# modindices(fit_manifest_group_neutral, sort. = T)
 
 fitMeasures(fit_manifest_group_neutral, c("cfi", "tli", "rmsea", "srmr"))
 # semPaths(fit_manifest)
@@ -143,7 +144,7 @@ fitMeasures(fit_manifest_group_neutral, c("cfi", "tli", "rmsea", "srmr"))
 # Mediation per valence group
 fit_manifest_group_positive <- sem(model_manifest, data=data_final_bl_scales[data_final_bl_scales$Group_affect == "positive", ])
 summary(fit_manifest_group_positive)
-modindices(fit_manifest_group_positive, sort. = T)
+# modindices(fit_manifest_group_positive, sort. = T)
 
 fitMeasures(fit_manifest_group_positive, c("cfi", "tli", "rmsea", "srmr"))
 # semPaths(fit_manifest)

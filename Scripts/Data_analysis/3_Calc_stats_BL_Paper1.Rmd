@@ -54,6 +54,7 @@ scales_continous_group <- c("BPD_screen", "CESD.t1", "PANAS_POS.t1", "PANAS_NEG.
 data_scales_continous_group <- data_final_bl_scales[, scales_continous_group]    
 
 df_anova_Gr <- data.frame("P" = numeric(), "F" = numeric(), 
+                          "Df_group" = numeric(), "Df_N" = numeric(), 
                           "Neu-Neg_diff" = numeric(), "Neu-Neg_p" = numeric(), 
                           "Neg-Pos_diff" = numeric(), "Neg-Pos_p" = numeric(), 
                           "Pos-Neu_diff" = numeric(), "Pos-Neu_p" = numeric())
@@ -64,6 +65,8 @@ df_anova_Gr_calc <-
   posthocresult <- TukeyHSD(aov(data_scales_continous_group[, i] ~ Group_affect, data = data_scales_continous_group))
   newRow <- list(anovaresult$`Pr(>F)`[1], 
                   anovaresult$`F value`[1], 
+                  anovaresult$`Df`[1],
+                  anovaresult$`Df`[2],
                   posthocresult$Group_affect[1, 1], # diff between neu-neg
                   posthocresult$Group_affect[1, 4], # p value for neu-neg
                   posthocresult$Group_affect[2, 1], # diff between neg-pos
@@ -78,6 +81,8 @@ print(round(df_anova_Gr, 3))
 
 # ANOVA for PANAS Pos/Neg effect size 
 fit_pos <- anova(aov(PANAS_POS.t1 ~ Group_affect, data=data_scales_continous_group)) 
+fit_pos$Df
+
 cohens_f(fit_pos)
 
 fit_neg <- anova(aov(PANAS_NEG.t1 ~ Group_affect, data=data_scales_continous_group))
@@ -119,8 +124,8 @@ plot_manipulation <- function(panas_scale, title) {
 
 # combine plots
 plot_group_diff_panas <- ggarrange(
-  plot_manipulation(panas_scale=data_final_bl_scales$PANAS_NEG.t1, title="PANAS Negative"), 
-  plot_manipulation(panas_scale=data_final_bl_scales$PANAS_POS.t1, title="PANAS Positive"),
+  plot_manipulation(panas_scale=data_final_bl_scales$PANAS_NEG.t1, title="NEGATIVE Character Evaluation"), 
+  plot_manipulation(panas_scale=data_final_bl_scales$PANAS_POS.t1, title="POSITIVE Character Evaluation"),
           hjust=0.8, vjust=0.5,
           common.legend = T)
 
@@ -237,10 +242,10 @@ return(plot)
 }
 
 # plot PANAS / Negative scale
-plot_panas_neg <- plot_bpd_y(y="PANAS_NEG.t1", y_title="Affect \n(PANAS / Negative)", breaks=seq(-60, 60, 10))
+plot_panas_neg <- plot_bpd_y(y="PANAS_NEG.t1", y_title="NEGATIVE \nCharacter Evaluation", breaks=seq(-60, 60, 10))
 
 # plot PANAS / Negative scale
-plot_panas_pos <- plot_bpd_y(y="PANAS_POS.t1", y_title="Affect \n(PANAS / Positive)", breaks=seq(-60, 60, 10))
+plot_panas_pos <- plot_bpd_y(y="PANAS_POS.t1", y_title="POSITIVE \nCharacter Evaluation", breaks=seq(-60, 60, 10))
 
 # plot CESD
 plot_cesd <- plot_bpd_y(y="CESD.t1", y_title="Negative mood \n", breaks=seq(0, 50, 10))
@@ -249,7 +254,7 @@ plot_cesd <- plot_bpd_y(y="CESD.t1", y_title="Negative mood \n", breaks=seq(0, 5
 plot_extr <- plot_bpd_y(y="EXTR", y_title="Extremity of Response", breaks=seq(0, 40, 5))
 
 # plot General impression
-plot_gen_impr <- plot_bpd_y(y="GEN_IMPR.t1", y_title="General impression \nof the video (positivity)", breaks=c(1:7))
+plot_gen_impr <- plot_bpd_y(y="GEN_IMPR.t1", y_title="General impression \nof the character (positivity)", breaks=c(1:7))
 
 
 # combine plots
@@ -262,7 +267,7 @@ plot_bpd_y <- ggarrange(plot_panas_neg, plot_panas_pos, plot_cesd, plot_extr, pl
 plot_bpd_y
 
 # save plot
-ggsave("fig1_distribution_mediators.jpg", plot=plot_bpd_y, 
+ggsave("mediators_distribution.jpg", plot=plot_bpd_y, 
        # width=30, height=33, units="cm")
        width = 30, height=25, units="cm") # for presentation
 ```
