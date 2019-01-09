@@ -4,14 +4,8 @@ output: html_document
 ---
 
 
----
-title: "Descr_BPD_memo"
-output: html_document
----
-
-
 ```{r get_functions, eval=T, echo=F}
-source("../functions_bpd_memo.R")
+source("../functions_bpd_memo.R") # helper functions
 
 # load packages
 packages <- c("ggplot2", "tidyverse", "lubridate", "data.table")
@@ -20,17 +14,21 @@ load_my_packages(packages)
 ```
 
 ```{r get_format_data, eval=T, echo=F}
-data_final_long <- read.csv2("../../Data/data_final_long_180910.csv")
-# sample size
-length(data_final_long$session)
+data_final_long <- read.csv2("../../Data/data_final_long_180910.csv") # all merged data, clean (attention check included)
 
+# sample size
+length(data_final_long$session)  # should be 558
+
+# format data
 cols_to_factor <- c("gender.sc", "gender.t1", "edu_years_compl.t1", "edu_highest.t1", "SES_subj.t1", "national.t1", 
                     "work.t1", "study.t1", "relationship.t1", "relationship_qual.t1", 
                     "English_first.sc", "English_level.sc", "English_first.t1", "English_level.t1", 
                     "medication.t1", "diagn_bpd.t1")
+
 for (i in cols_to_factor) {
   data_final_long[, i] <- as.factor(data_final_long[, i]) 
   }
+
 
 ## AFFECT GROUPING
 data_final_long$Group_affect <- ifelse(data_final_long$Group.t1 %in% c("1", "2", "3"), "positive", 
@@ -226,6 +224,7 @@ length(data_final_long$session)
 
 # save data
 write.csv2(data_final_long, file="../../Data/data_final_long_scales_181121.csv")
+
 
 
 ```

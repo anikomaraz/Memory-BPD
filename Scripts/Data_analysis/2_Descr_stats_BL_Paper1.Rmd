@@ -17,7 +17,7 @@ overwrite_data = FALSE  # if TRUE, then the final data will be saved (overwritte
 ```
 
 ```{r get_format_data, eval=T, echo=F}
-data_final_bl <- read.csv2("../../Data/data_final_bl_180910.csv")
+data_final_bl <- read.csv2("../../Data/data_final_bl_180910.csv") # where all data were merged (baseline-only), and clean (attention check)
 
 # set formats
 cols_to_factor <- c("gender.sc", "gender.t1", "edu_years_compl.t1", "edu_highest.t1", "SES_subj.t1", "national.t1", 

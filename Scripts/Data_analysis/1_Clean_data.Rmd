@@ -7,21 +7,17 @@ author: Aniko Maraz
 
 ```{r setup_finetune, include=T, echo=FALSE}
 # load packages
-# source(here("Scripts", "functions_bpd_memo.R")) 
 source("../../Scripts/functions_bpd_memo.R")
 packages <- c("ggplot2", "tidyverse", "lubridate", "data.table", "rjson", "here")
 load_my_packages(packages)
 
-
 # call helper files
-# source(here("Scripts", "not_approved_screening_sessions.R")) # contains the test sessions + those who wished to withdraw their data
-# source(here("Scripts", "ipstack_key.R"))  # contains my ipstack pass
-source("../../Scripts/not_approved_screening_sessions.R")
-source("../../Scripts/ipstack_key.R")
+source("../../Scripts/not_approved_screening_sessions.R") # contains the test sessions + those who wished to withdraw their data
+source("../../Scripts/ipstack_key.R") # contains my ipstack pass (not available for the public)
 
 # user-defined options
 overwrite_data = FALSE  # if TRUE, then the final data will be saved (overwritten)
-access_to_identifiable_data = TRUE # if TRUE, then data will contain identifiable information. These files are not available for the public.
+access_to_identifiable_data = FALSE # if TRUE, then data will contain identifiable information. These files are not available for the public.
 ip_verification = FALSE # if true, then IP addresses will be checked via ipstack (make sure you have an account and insert your own key)
 
 ```
@@ -48,8 +44,7 @@ if (access_to_identifiable_data == TRUE) {
       data_raw <- full_join(data_raw, 
                             mturk_full_data[, c("session", "survey_virgin", "source", "screen_attention_check_error")], 
                             by="session")
-      
-     }
+           }
 
 if (access_to_identifiable_data == TRUE) {
 ## TIME
@@ -120,7 +115,10 @@ if (access_to_identifiable_data == TRUE) {
   }
 }
 
+if (access_to_identifiable_data == TRUE) {
 table(data_raw_identifiable$ip_country)
+  
+}
 ```
 
 ```{r ip_address_count_flag, eval=T, echo=F}
@@ -191,7 +189,7 @@ data_clean <- data_clean[data_clean$screen_positive == T, ]
 N5_screenpostive <- length(data_clean$session)
 
 # check for group difference among those who passed the screening between those who completed P1 and those who did not 
-# BPD_scrPos_compP1_vs_notCompP1 <- t.test(data_clean$BPD_screen ~ !is.na(data_clean$panas_1.t1), alternative= "two.sided")
+BPD_scrPos_compP1_vs_notCompP1 <- t.test(data_clean$BPD_screen ~ !is.na(data_clean$panas_1.t1), alternative= "two.sided")
 
 ## participants with no missing data on PANAS at t1
 data_clean <- data_clean[!is.na(data_clean$panas_1.t1),]
@@ -372,6 +370,39 @@ exclude_errors_long
 
 ```
 
+```{r merge_quali_long}
+# merge qualitative data per group, so only 4 column remains (T1-T4)
+qual_t1 <- c("gr1_qual.t1", "gr2_qual.t1", "gr3_qual.t1",
+             "gr4_qual.t1", "gr5_qual.t1", "gr6_qual.t1",
+             "gr7_qual.t1", "gr8_qual.t1", "gr9_qual.t1")
+
+qual_t2 <- c("gr1_qual.t2", "gr2_qual.t2", "gr3_qual.t2",
+             "gr4_qual.t2", "gr5_qual.t2", "gr6_qual.t2",
+             "gr7_qual.t2", "gr8_qual.t2", "gr9_qual.t2")
+
+qual_t3 <- c("gr1_qual.t3", "gr2_qual.t3", "gr3_qual.t3",
+             "gr4_qual.t3", "gr5_qual.t3", "gr6_qual.t3",
+             "gr7_qual.t3", "gr8_qual.t3", "gr9_qual.t3")
+
+qual_t4 <- c("gr1_qual.t4", "gr2_qual.t4", "gr3_qual.t4",
+             "gr4_qual.t4", "gr5_qual.t4", "gr6_qual.t4",
+             "gr7_qual.t4", "gr8_qual.t4", "gr9_qual.t4")
+
+data_final_long$qual.t1 <- apply(data_final_long[, qual_t1], 1, paste, collapse="")
+data_final_long$qual.t2 <- apply(data_final_long[, qual_t2], 1, paste, collapse="")
+data_final_long$qual.t3 <- apply(data_final_long[, qual_t3], 1, paste, collapse="")
+data_final_long$qual.t4 <- apply(data_final_long[, qual_t4], 1, paste, collapse="")
+
+# get rid of NA in the text
+data_final_long$qual.t1 <- gsub("NA", "", data_final_long$qual.t1)
+data_final_long$qual.t2 <- gsub("NA", "", data_final_long$qual.t2)
+data_final_long$qual.t3 <- gsub("NA", "", data_final_long$qual.t3)
+data_final_long$qual.t4 <- gsub("NA", "", data_final_long$qual.t4)
+
+```
+
+
+
 ```{r check_data_quality}
 # for baseline data
 round(prop.table(table(data_final_bl$att_check_sum_t1)) * 100, 2)
@@ -401,6 +432,8 @@ if (overwrite_data) {
 
 
 ```
+
+
 
 
 
