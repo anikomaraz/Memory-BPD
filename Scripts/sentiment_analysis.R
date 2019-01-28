@@ -1,5 +1,7 @@
 library(tidyverse)
 library(tidytext)
+# library(proustr)
+library(hunspell)
 
 # TODO: stemming
 # TODO: correct typos
@@ -7,6 +9,7 @@ library(tidytext)
 
 # "data_final_long_scales_181121.csv"
 df_raw <- read_csv2("data/data_raw_full_180831.csv")
+df_raw <- read_csv2("data/")
 
 bpd_df <-
   df_raw %>% 
@@ -15,8 +18,7 @@ bpd_df <-
   group_by(session) %>% 
   summarise(sum_bpd = sum(value, na.rm = TRUE))
 
-
-text_df <-
+sentence_df <-
     df_raw %>%
     # Drop all testing rows
     filter(!str_detect(session, "TEST|correc|obedie")) %>% 
@@ -29,10 +31,37 @@ text_df <-
     filter(n == 4) %>% 
     select(-n)
 
+# Tokenize by word
+word_df <- 
+  sentence_df %>% 
+  unnest_tokens(word, value) %>% 
+  mutate(correct = hunspell_check(word))
+  
+# Write 
+
+word_df %>% 
+  filter(!correct) %>% 
+  View()
+
+# temp <-
+  word_df %>% 
+  slice(1:1000) %>% 
+  pull(word) %>%
+  hunspell_check() %>% 
+  View()
+
+extract_first <- possibly(., otherwise = NA_character_)
+
+word_df %>% 
+  mutate(corrected = hunspell_suggest()
+         stemmed = hunspell_stem(word)) %>% 
+  unnest(stemmed) %>% 
+  View()
+
+stemmed_df <- pr_stem_words(word_df, word, language = "english")
+  
 senti_df <-
-  text_df %>% 
-    # Tokenize by word
-    unnest_tokens(word, value) %>% 
+    word_df %>% 
     # Add sentiments (stemming might be needed before!)
     left_join(get_sentiments("afinn"), by = "word") %>% 
     group_by(session, question, time) %>% 
