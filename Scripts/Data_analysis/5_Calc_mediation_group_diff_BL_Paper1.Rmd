@@ -22,7 +22,7 @@ library(ggpubr)
 ```
 
 ```{r get_data, eval=T, echo=F}
-data_final_bl_scales <- read.csv2("../../Data/data_final_bl_scales_180913.csv")
+data_final_bl_scales <- read.csv2("../../Data/data_final_bl_scales_181120.csv")
 
 ```
 
@@ -52,17 +52,8 @@ model_manifest <- '
 
 # baseline modell, all parameters set free
 fit_manifest_free <- sem(model_manifest, data=data_final_bl_scales, group="Group_affect")
-# summary(fit_manifest_free)
-# fitMeasures(fit_manifest_free, c("cfi", "tli", "rmsea", "srmr"))
-# 
-# # baseline model, the differring paths restricted
-# fit_manifest_mod <- sem(model_manifest, data=data_final_bl_scales, 
-#                         group="Group_affect", 
-#                         group.equal = "regressions", 
-#                         group.partial = c("PANAS_POS.t1~GEN_IMPR.t1", "PANAS_NEG.t1~GEN_IMPR.t1"))
-
-# compare the 2 models above
-# anova(fit_manifest_free, fit_manifest_mod)
+summary(fit_manifest_free)
+fitMeasures(fit_manifest_free, c("cfi", "tli", "rmsea", "srmr"))
 
 
 refit <- function(model, ...){
@@ -72,102 +63,67 @@ refit <- function(model, ...){
   refit
 }
 
-rank_models <- function(models, free, fit){
+rank_models <- function(models, free, fit, desc = FALSE){
   fits <- map_dbl(models, fitmeasures, fit)
   out <- tibble(models = models, fits = fits, free = free)
+  if(desc) {
+    out <-  arrange(out, desc(fits))
+    } else {
+    out <- arrange(out, fits)
+    }
   out
 }
 
-choose_free <- function(free, rank, parameters){
-  
+choose_free <- function(ranked_models, baseline, free, op_free){
+  best <- first(ranked_models$free)
+  possible <- get_parameter_names(baseline, op_free)
+  possible <- setdiff(possible, best)
+  free <- map(possible, ~c(.x, best))
+  #browser()
+  free
 }
 
-well_enough <- function(model1, model2){
+well_enough <- function(model1, model2, threshold = .05){
+  if(fitmeasures(model1, "df") == fitmeasures(model2, "df"))return(TRUE)
   anova <- anova(model1, model2)
-  if(isTRUE(anova$`Pr(>Chisq)`[[2]] > .05))return(TRUE)  # significance threshold set to 0.05
-  else return(FALSE)
+  cat(format(anova$`Pr(>Chisq)`[[2]], scientific = FALSE, digits = 8), "\n")
+  isTRUE(anova$`Pr(>Chisq)`[[2]] > threshold)
+}
+
+get_parameter_names <- function(model, op){
+  parameterestimates(model) %>%
+    filter(op == !!op) %>%
+    select(lhs, op, rhs) %>%
+    pmap_chr(paste0) %>%
+    unique()
 }
 
 find_differences <- function(model, restrict, op_free){
-  
   full_restricted <- refit(model, group.equal = restrict)
   if(well_enough(model, full_restricted))return("")
-  free <- parameterestimates(model) %>% filter(op == !!op_free) %>% select(lhs, op, rhs) %>% pmap_chr(paste0) %>% unique()
+  free <- get_parameter_names(model, op_free)
   find_differences_ <- function(baseline, free){
-    #browser()
     candites <- map(free, ~refit(model, group.equal = restrict, group.partial = .x))
-    rank <- rank_models(candites, free, "BIC")
-    rank <- arrange(rank, fits)
-    if(well_enough(baseline, rank$models[[1]]))return(rank$free[[1]])
-    free <- free[!(free %in% rank$free[[1]])]
-    free <- map(free, c, rank$free[[1]])
-    #str(free)
+    ranked_models <- rank_models(candites, free, "BIC", desc = FALSE)
+    if(well_enough(baseline, first(ranked_models$models)))return(ranked_models$free[[1]])
+    free <- choose_free(ranked_models, baseline, free, op_free)
+    if(length(free)==0)browser()
     find_differences_(baseline, free)
   }
   find_differences_(model, free)
 }
 
 
-find_differences(fit_manifest_free, "regressions", "~")
+find_differences(model = fit_manifest_free,
+                 restrict = "regressions",
+                 op_free = "~")
 
 
-# calculate multigroup differences
-fit_manifest_free <- sem(model_manifest, data=data_final_bl_scales, group="Group_affect") # baseline modell, all parameters set free
+# baseline model, the differring paths restricted
+fit_manifest_mod <- sem(model_manifest, data=data_final_bl_scales, group="Group_affect", group.equal = "regressions", group.partial = c("PANAS_POS.t1~GEN_IMPR.t1", "PANAS_NEG.t1~GEN_IMPR.t1"))
 
-
-```
-
-```{r path_diff, eval=T, echo=T}
-# Path 1 within-valence-group differences
-parameterEstimates(fit_manifest_free, ci=T) %>% filter(lhs == "PANAS_POS.t1", rhs == "GEN_IMPR.t1") 
-
-# Path 2 within-valence-group differences
-parameterEstimates(fit_manifest_free, ci=T) %>% filter(lhs == "PANAS_NEG.t1", rhs == "GEN_IMPR.t1") 
-
-
-```
-
-
-
-```{r anikos_code}
-
-free_one_group <- function(path=paths, data=data_final_bl_scales) {
-  # baseline model 
-  fit_manifest_free <- sem(model_manifest, data=data, group="Group_affect")
-
-  # partial equality: all but one paths set free 
-  fit_manifest_partial1 <- sem(model_manifest, data=data, group="Group_affect", 
-                             group.equal = "regressions", 
-                             group.partial = c("x", "y", "a"))
-
-  # compare partial 1 model with baseline
-  p_value <- anova(fit_manifest_free, fit_manifest_partial1) # p value
-  
-  return(p_value)
-  }
-
-free_one_group()
-
-# try with other paths (individually)
-# look for the largest difference between this fit and the one with the freed model
-
-
-
-fit_manifest_partial1 <- sem(model_manifest, data=data_final_bl_scales, group="Group_affect", 
-                             group.equal = "regressions", 
-                             group.partial = c("a", "b"))
-
-# compare fit
-
-fit_manifest_partial1 <- sem(model_manifest, data=data_final_bl_scales, group="Group_affect", 
-                             group.equal = "regressions", 
-                             group.partial = c("a", "b", "c", "d")) # these parameters are freed
-
-
-
-anova(fit_manifest_partial1, fit_manifest_free)
-
-parameterEstimates(fit_manifest_free, ci=T) %>% filter(lhs == "PANAS_NEG.t1", rhs == "BPD") 
+# compare the 2 models above
+anova(fit_manifest_free, fit_manifest_mod)
 
 
 ```
