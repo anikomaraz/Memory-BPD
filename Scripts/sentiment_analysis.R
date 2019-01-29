@@ -86,7 +86,9 @@ afinn_df <-
     summarise(answer_length = first(answer_length),
               sum_senti = sum(score, na.rm = TRUE),
               rel_senti = sum_senti/answer_length) %>% 
-    ungroup()
+    ungroup() %>% 
+    left_join(groups, by = "group") %>% 
+    select(session, group, group_affect, everything())
 
 # Bing returns positive and negative, and we calculate positive to be +1 and negative 
 # as -1. Than we summarise, and calculate the sentiment relative to the whole answer. 
@@ -100,7 +102,9 @@ bing_df <-
   summarise(answer_length = first(answer_length),
             sum_senti = sum(score, na.rm = TRUE),
             rel_senti = sum_senti/answer_length)
-  ungroup()
+  ungroup() %>% 
+    left_join(groups, by = "group") %>% 
+    select(session, group, group_affect, everything())
 
 # NRC and Loughran returns emotions and categories, and we don't do any weighting of 
 # positive and negative emotions. But we do a relativization to the length of the answer.
@@ -115,7 +119,10 @@ nrc_df <-
   summarise(answer_length = first(answer_length),
             sum_senti = sum(score, na.rm = TRUE),
             rel_senti = sum_senti/answer_length) %>% 
-  ungroup()
+  ungroup()  %>% 
+  left_join(groups, by = "group") %>% 
+  select(session, group, group_affect, everything())
+  
 
 log_df <-
   word_df %>% 
@@ -127,9 +134,11 @@ log_df <-
   summarise(answer_length = first(answer_length),
             sum_senti = sum(score, na.rm = TRUE),
             rel_senti = sum_senti/answer_length) %>% 
-  ungroup()
+  ungroup()  %>% 
+  left_join(groups, by = "group") %>% 
+  select(session, group, group_affect, everything())
 
-# Save the calculated sentiments to different files
+## Save the calculated sentiments to different files
 write_excel_csv2(afinn_df, "Data/sentiments_afinn.csv")
 write_excel_csv2(bing_df, "Data/sentiments_bing.csv")
 write_excel_csv2(nrc_df, "Data/sentiments_nrc")
