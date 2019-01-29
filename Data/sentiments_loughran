@@ -152,7 +152,7 @@ _0TRf-WkNttuvEx7qMK6CPzjHAkvb-tRxd4ZijoPEwMxv0_Vh265sNwRw5Skqz7x;gr9;negative;2;
 _0TRf-WkNttuvEx7qMK6CPzjHAkvb-tRxd4ZijoPEwMxv0_Vh265sNwRw5Skqz7x;gr9;negative;3;constraining;  8;0,0;0,000000000
 _0TRf-WkNttuvEx7qMK6CPzjHAkvb-tRxd4ZijoPEwMxv0_Vh265sNwRw5Skqz7x;gr9;negative;3;litigious;  8;0,0;0,000000000
 _0TRf-WkNttuvEx7qMK6CPzjHAkvb-tRxd4ZijoPEwMxv0_Vh265sNwRw5Skqz7x;gr9;negative;3;negative;  8;0,0;0,000000000
-_0TRf-WkNttuvEx7qMK6CPzjHAkvb-tRxd4ZijoPEwMxv0_Vh265sNwRw5Skqz7x;gr9;negative;3;positive;  8;0,0;0,000000000
+_0TRf-WkNttuvEx7qMK6CPzjHAkvb-tRxd4ZijoPEwMxv0_Vh265sNwRw5Skqz7x;gr9;negative;3;positive;  8;1,0;0,125000000
 _0TRf-WkNttuvEx7qMK6CPzjHAkvb-tRxd4ZijoPEwMxv0_Vh265sNwRw5Skqz7x;gr9;negative;3;uncertainty;  8;0,0;0,000000000
 _0TRf-WkNttuvEx7qMK6CPzjHAkvb-tRxd4ZijoPEwMxv0_Vh265sNwRw5Skqz7x;gr9;negative;4;constraining;  6;0,0;0,000000000
 _0TRf-WkNttuvEx7qMK6CPzjHAkvb-tRxd4ZijoPEwMxv0_Vh265sNwRw5Skqz7x;gr9;negative;4;litigious;  6;0,0;0,000000000
@@ -2056,7 +2056,7 @@ _Rim_hZKQtPe6pt1jPvxYjTRKWmG39A4MUfurNbFwa8Wsv9IzmOswEMxwnlJSBcO;gr3;positive;4;
 8jZmWO5bZDFcTLE-ZwWivNajUpFob14-ltqBby86RAckE5JXDA12FsMafl48IMaK;gr8;negative;3;uncertainty; 21;0,0;0,000000000
 8jZmWO5bZDFcTLE-ZwWivNajUpFob14-ltqBby86RAckE5JXDA12FsMafl48IMaK;gr8;negative;4;constraining; 46;0,0;0,000000000
 8jZmWO5bZDFcTLE-ZwWivNajUpFob14-ltqBby86RAckE5JXDA12FsMafl48IMaK;gr8;negative;4;litigious; 46;0,0;0,000000000
-8jZmWO5bZDFcTLE-ZwWivNajUpFob14-ltqBby86RAckE5JXDA12FsMafl48IMaK;gr8;negative;4;negative; 46;0,0;0,000000000
+8jZmWO5bZDFcTLE-ZwWivNajUpFob14-ltqBby86RAckE5JXDA12FsMafl48IMaK;gr8;negative;4;negative; 46;2,0;0,043478261
 8jZmWO5bZDFcTLE-ZwWivNajUpFob14-ltqBby86RAckE5JXDA12FsMafl48IMaK;gr8;negative;4;positive; 46;1,0;0,021739130
 8jZmWO5bZDFcTLE-ZwWivNajUpFob14-ltqBby86RAckE5JXDA12FsMafl48IMaK;gr8;negative;4;uncertainty; 46;0,0;0,000000000
 8m-msf5R6FDaRop6TwK-mZsjt6N41Cc9xpcJ1Mb5_DcaViq6jsc2jSF6-kuyVltE;gr5;neutral;1;constraining; 34;0,0;0,000000000
@@ -4228,7 +4228,7 @@ gG_tuaokc-Jk5d0Su0w-Qm2tGhiQCcF_N1KH4EN9JhmogHtotcWLkzXwjSFA66ER;gr3;positive;2;
 gG_tuaokc-Jk5d0Su0w-Qm2tGhiQCcF_N1KH4EN9JhmogHtotcWLkzXwjSFA66ER;gr3;positive;2;litigious; 54;0,0;0,000000000
 gG_tuaokc-Jk5d0Su0w-Qm2tGhiQCcF_N1KH4EN9JhmogHtotcWLkzXwjSFA66ER;gr3;positive;2;negative; 54;2,0;0,037037037
 gG_tuaokc-Jk5d0Su0w-Qm2tGhiQCcF_N1KH4EN9JhmogHtotcWLkzXwjSFA66ER;gr3;positive;2;positive; 54;0,0;0,000000000
-gG_tuaokc-Jk5d0Su0w-Qm2tGhiQCcF_N1KH4EN9JhmogHtotcWLkzXwjSFA66ER;gr3;positive;2;uncertainty; 54;0,0;0,000000000
+gG_tuaokc-Jk5d0Su0w-Qm2tGhiQCcF_N1KH4EN9JhmogHtotcWLkzXwjSFA66ER;gr3;positive;2;uncertainty; 54;1,0;0,018518519
 gG_tuaokc-Jk5d0Su0w-Qm2tGhiQCcF_N1KH4EN9JhmogHtotcWLkzXwjSFA66ER;gr3;positive;3;constraining; 36;0,0;0,000000000
 gG_tuaokc-Jk5d0Su0w-Qm2tGhiQCcF_N1KH4EN9JhmogHtotcWLkzXwjSFA66ER;gr3;positive;3;litigious; 36;0,0;0,000000000
 gG_tuaokc-Jk5d0Su0w-Qm2tGhiQCcF_N1KH4EN9JhmogHtotcWLkzXwjSFA66ER;gr3;positive;3;negative; 36;1,0;0,027777778
@@ -10251,7 +10251,7 @@ XgtyMaVL57s65Ef-1xhHov7q359dUNi9a3J2uOFU8EFpqj8bdKh5Oe9OtXvqmzNA;gr9;negative;2;
 XgtyMaVL57s65Ef-1xhHov7q359dUNi9a3J2uOFU8EFpqj8bdKh5Oe9OtXvqmzNA;gr9;negative;2;uncertainty; 47;1,0;0,021276596
 XgtyMaVL57s65Ef-1xhHov7q359dUNi9a3J2uOFU8EFpqj8bdKh5Oe9OtXvqmzNA;gr9;negative;3;constraining; 43;0,0;0,000000000
 XgtyMaVL57s65Ef-1xhHov7q359dUNi9a3J2uOFU8EFpqj8bdKh5Oe9OtXvqmzNA;gr9;negative;3;litigious; 43;0,0;0,000000000
-XgtyMaVL57s65Ef-1xhHov7q359dUNi9a3J2uOFU8EFpqj8bdKh5Oe9OtXvqmzNA;gr9;negative;3;negative; 43;0,0;0,000000000
+XgtyMaVL57s65Ef-1xhHov7q359dUNi9a3J2uOFU8EFpqj8bdKh5Oe9OtXvqmzNA;gr9;negative;3;negative; 43;1,0;0,023255814
 XgtyMaVL57s65Ef-1xhHov7q359dUNi9a3J2uOFU8EFpqj8bdKh5Oe9OtXvqmzNA;gr9;negative;3;positive; 43;0,0;0,000000000
 XgtyMaVL57s65Ef-1xhHov7q359dUNi9a3J2uOFU8EFpqj8bdKh5Oe9OtXvqmzNA;gr9;negative;3;uncertainty; 43;0,0;0,000000000
 XgtyMaVL57s65Ef-1xhHov7q359dUNi9a3J2uOFU8EFpqj8bdKh5Oe9OtXvqmzNA;gr9;negative;4;constraining; 51;0,0;0,000000000

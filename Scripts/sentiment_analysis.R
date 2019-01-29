@@ -78,7 +78,7 @@ corrected_word_df <-
 # Add sentiments --------------------------------------------------------------------
 # Afinn returns a numner that can be positive and negative, and reflects intensity
 afinn_df <- 
-    word_df %>% 
+  corrected_word_df %>% 
     # Add sentiments
     left_join(get_sentiments("afinn"), by = "word") %>% 
     group_by(session, group, time) %>% 
@@ -93,7 +93,7 @@ afinn_df <-
 # Bing returns positive and negative, and we calculate positive to be +1 and negative 
 # as -1. Than we summarise, and calculate the sentiment relative to the whole answer. 
 bing_df <-
-  word_df %>% 
+  corrected_word_df %>% 
   calculate_sentiment(word, "bing") %>%
   mutate_at(vars(word_negative:word_positive), ~if_else(is.na(.), 0, .)) %>% 
   mutate(word_negative = word_negative * (-1)) %>% 
@@ -101,16 +101,16 @@ bing_df <-
   group_by(session, group, time) %>% 
   summarise(answer_length = first(answer_length),
             sum_senti = sum(score, na.rm = TRUE),
-            rel_senti = sum_senti/answer_length)
+            rel_senti = sum_senti/answer_length) %>% 
   ungroup() %>% 
-    left_join(groups, by = "group") %>% 
-    select(session, group, group_affect, everything())
+  left_join(groups, by = "group") %>% 
+  select(session, group, group_affect, everything())
 
 # NRC and Loughran returns emotions and categories, and we don't do any weighting of 
 # positive and negative emotions. But we do a relativization to the length of the answer.
 # The number cannot get negative this way.
 nrc_df <-
-  word_df %>% 
+  corrected_word_df %>% 
   calculate_sentiment(word, "nrc") %>% 
   mutate_at(vars(word_anger:word_trust), ~if_else(is.na(.), 0, .)) %>% 
   gather(sentiment, score, word_anger:word_trust, na.rm = TRUE) %>% 
@@ -125,7 +125,7 @@ nrc_df <-
   
 
 log_df <-
-  word_df %>% 
+  corrected_word_df %>% 
   calculate_sentiment(word, "loughran") %>% 
   mutate_at(vars(word_constraining:word_uncertainty), ~if_else(is.na(.), 0, .)) %>% 
   gather(sentiment, score, word_constraining:word_uncertainty, na.rm = TRUE) %>% 
@@ -139,8 +139,8 @@ log_df <-
   select(session, group, group_affect, everything())
 
 ## Save the calculated sentiments to different files
-write_excel_csv2(afinn_df, "Data/sentiments_afinn.csv")
-write_excel_csv2(bing_df, "Data/sentiments_bing.csv")
-write_excel_csv2(nrc_df, "Data/sentiments_nrc")
-write_excel_csv2(log_df, "Data/sentiments_loughran")
+# write_excel_csv2(afinn_df, "Data/sentiments_afinn.csv")
+# write_excel_csv2(bing_df, "Data/sentiments_bing.csv")
+# write_excel_csv2(nrc_df, "Data/sentiments_nrc")
+# write_excel_csv2(log_df, "Data/sentiments_loughran")
 
