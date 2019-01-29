@@ -1,0 +1,58 @@
+---
+title: "sentiment_vizualisation"
+author: "Aniko Maraz"
+date: "January 29, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r library_data}
+afinn_df <- read_csv2("Data/sentiments_afinn.csv")
+bing_df <- read_csv2("Data/sentiments_bing.csv")
+log_df <- read_csv2("Data/sentiments_loughran.csv")
+nrc_df <- read_csv2("Data/sentiments_nrc.csv")
+
+library(tidyverse)
+```
+
+
+```{r afinn}
+head(afinn_df)
+ggplot(afinn_df, aes(time, rel_senti, fill=group_affect)) +
+stat_summary(geom = "bar", fun.y = mean, position = "dodge") +
+  stat_summary(geom = "errorbar", fun.data = mean_se, position = "dodge")
+```
+
+```{r prep_data}
+# merge data where negative and positive sentiment ratings are available separately (bing, nrc and loughran)
+bing_nrc_log_df <- bind_rows("nrc" = nrc_df,
+                             "loughran" = log_df,
+                              "bing" = bing_df, 
+                            .id = "lexicon") %>%
+  filter(sentiment %in% c("positive", "negative"))
+
+head(bing_nrc_log_df)
+```
+
+
+
+```{r bing}
+ggplot(bing_df, aes(time, rel_senti, fill=group_affect)) +
+stat_summary(geom = "bar", fun.y = mean, position = "dodge") +
+  stat_summary(geom = "errorbar", fun.data = mean_se, position = "dodge")
+
+
+
+```{r faceting_pos_neg}
+ggplot(bing_nrc_log_df, aes(time, rel_senti, fill=group_affect)) + 
+  stat_summary(geom = "bar", fun.y = mean, position = "dodge") +
+  stat_summary(geom = "errorbar", fun.data = mean_se, position = "dodge") +
+  facet_grid(sentiment~lexicon)
+
+```
+
+
+
+
+
