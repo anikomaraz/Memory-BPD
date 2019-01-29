@@ -146,18 +146,21 @@ log_df <-
 ## Save the calculated sentiments to different files
 # write_excel_csv2(afinn_df, "Data/sentiments_afinn.csv")
 # write_excel_csv2(bing_df, "Data/sentiments_bing.csv")
-# write_excel_csv2(nrc_df, "Data/sentiments_nrc")
-# write_excel_csv2(log_df, "Data/sentiments_loughran")
+# write_excel_csv2(nrc_df, "Data/sentiments_nrc.csv")
+# write_excel_csv2(log_df, "Data/sentiments_loughran.csv")
 
 
 # Compare sentiment dictionaries ----------------------------------------------------
 
-temp <- 
 bind_rows("nrc" = nrc_df, 
           "loughran" = log_df, 
           "bing" = bing_df, .id = "lexicon") %>% 
-  filter(sentiment %in% c("positive", "negative"))
-
+  filter(sentiment %in% c("positive", "negative")) %>% 
+  filter(!sum_senti == 0) %>% 
+  count(lexicon)
+  
+afinn_df %>% 
+  filter(!sum_senti == 0) %>% View()
 
 
 
