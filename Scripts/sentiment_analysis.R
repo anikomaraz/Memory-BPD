@@ -75,8 +75,18 @@ corrected_word_df <-
   unnest_tokens(word, word)
 
 
+# Negating words --------------------------------------------------------------------
+
+negated_words <-
+corrected_word_df %>% 
+  mutate(negate = if_else(lag(str_detect(word, "^not$|^no$|'t")), -1, 1)) %>% 
+  filter(negate == -1) %>% 
+  # write_excel_csv("negating_words.csv")
+  View()
+
+
 # Add sentiments --------------------------------------------------------------------
-# Afinn returns a numner that can be positive and negative, and reflects intensity
+# Afinn returns a number that can be positive and negative, and reflects intensity
 afinn_df <- 
   corrected_word_df %>% 
     # Add sentiments
@@ -90,15 +100,15 @@ afinn_df <-
     left_join(groups, by = "group") %>% 
     select(session, group, group_affect, everything())
 
-# Bing returns positive and negative, and we calculate positive to be +1 and negative 
-# as -1. Than we summarise, and calculate the sentiment relative to the whole answer. 
+# Bing, NRC and Loughran returns emotions and categories, and we don't do any weighting of 
+# positive and negative emotions. But we do a relativization to the length of the answer.
+# The number cannot get negative this way.
 bing_df <-
   corrected_word_df %>% 
   calculate_sentiment(word, "bing") %>%
-  mutate_at(vars(word_negative:word_positive), ~if_else(is.na(.), 0, .)) %>% 
-  mutate(word_negative = word_negative * (-1)) %>% 
   gather(sentiment, score, word_negative:word_positive) %>% 
-  group_by(session, group, time) %>% 
+  mutate(sentiment = str_remove(sentiment, "word_")) %>% 
+  group_by(session, group, time, sentiment) %>% 
   summarise(answer_length = first(answer_length),
             sum_senti = sum(score, na.rm = TRUE),
             rel_senti = sum_senti/answer_length) %>% 
@@ -106,13 +116,9 @@ bing_df <-
   left_join(groups, by = "group") %>% 
   select(session, group, group_affect, everything())
 
-# NRC and Loughran returns emotions and categories, and we don't do any weighting of 
-# positive and negative emotions. But we do a relativization to the length of the answer.
-# The number cannot get negative this way.
-nrc_df <-
+nrc_df <- 
   corrected_word_df %>% 
-  calculate_sentiment(word, "nrc") %>% 
-  mutate_at(vars(word_anger:word_trust), ~if_else(is.na(.), 0, .)) %>% 
+  calculate_sentiment(word, "nrc") %>%
   gather(sentiment, score, word_anger:word_trust, na.rm = TRUE) %>% 
   mutate(sentiment = str_remove(sentiment, "word_")) %>% 
   group_by(session, group, time, sentiment) %>% 
@@ -127,7 +133,6 @@ nrc_df <-
 log_df <-
   corrected_word_df %>% 
   calculate_sentiment(word, "loughran") %>% 
-  mutate_at(vars(word_constraining:word_uncertainty), ~if_else(is.na(.), 0, .)) %>% 
   gather(sentiment, score, word_constraining:word_uncertainty, na.rm = TRUE) %>% 
   mutate(sentiment = str_remove(sentiment, "word_")) %>% 
   group_by(session, group, time, sentiment) %>% 
@@ -143,4 +148,16 @@ log_df <-
 # write_excel_csv2(bing_df, "Data/sentiments_bing.csv")
 # write_excel_csv2(nrc_df, "Data/sentiments_nrc")
 # write_excel_csv2(log_df, "Data/sentiments_loughran")
+
+
+# Compare sentiment dictionaries ----------------------------------------------------
+
+temp <- 
+bind_rows("nrc" = nrc_df, 
+          "loughran" = log_df, 
+          "bing" = bing_df, .id = "lexicon") %>% 
+  filter(sentiment %in% c("positive", "negative"))
+
+
+
 

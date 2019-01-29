@@ -1,9 +1,9 @@
-# Calculates the proportion of sentiments in a column of text data
+# Calculates the proportion of sentiments in a column of words
 # INPUT: df: data frame, 
 #        column: text column to  use for sentiment calculation, 
 #        lexicon: which sentiment lexicon to use? "bing" (default), "nrc", "loughran"
 # OUTPUT: The original df, plus new sentiment columns 
-# EXAMPLE: evaluate_sentiment(okcupid, essay0, lexicon = "nrc")
+# EXAMPLE: calculate_sentiment(okcupid, essay0, lexicon = "nrc")
 
 if (!require(tidyverse)) install.packages("tidyverse")
 if (!require(tidytext)) install.packages("tidytext")
@@ -18,12 +18,6 @@ calculate_sentiment <- function(df,
         df %>% 
                 # Keep only the variable of importance
                 dplyr::select(id, !!rlang::sym(column)) %>% 
-                # Tokenize by word
-                tidytext::unnest_tokens(word, 
-                                        input = !!sym(column)) %>% 
-                # Remove stopwords
-                dplyr::anti_join(tidytext::stop_words, 
-                                 by = "word") %>% 
                 # Add sentiments
                 dplyr::left_join(tidytext::get_sentiments(lexicon), 
                                  by = "word") %>% 
@@ -31,16 +25,14 @@ calculate_sentiment <- function(df,
                 dplyr::count(id, sentiment) %>% 
                 dplyr::group_by(id) %>% 
                 # Count all words
-                dplyr::mutate(words = sum(n)) %>% 
                 tidyr::drop_na(sentiment) %>% 
                 tidyr::spread(sentiment, n) %>% 
-                # calculate proportion
-                dplyr::mutate_at(dplyr::vars(-id, -words), 
-                                 dplyr::funs(./words)) %>%
                 # Add column name as prefix
-                dplyr::rename_at(dplyr::vars(-id, -words), 
+                dplyr::rename_at(dplyr::vars(-id), 
                                  dplyr::funs(paste0(column, "_", .))) %>% 
                 # Put new variables next to the original data frame
                 dplyr::left_join(df, ., by = "id") %>% 
-                dplyr::select(-id, -words)
+                # Replace all NAs with 0s
+                mutate_if(is.integer, ~tidyr::replace_na(., 0)) %>% 
+                dplyr::select(-id)
 }
