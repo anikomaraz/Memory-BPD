@@ -6,12 +6,10 @@ output: html_document
 ---
 
 ```{r}
-# setwd("/home/aniko/R/Memory-and-BPD")
-
 source("../functions_bpd_memo.R")
 
 # load packages
-packages <- c("ggplot2", "tidyverse", "psych", "nortest", 
+packages <- c("ggplot2", "tidyverse", "psych", "nortest", "sjstats",
               "apaTables", "jtools", "lavaan", "ggpubr", "semPlot") # note: semPlot (and dependencies) need a lot of memory to be installed!
 load_my_packages(packages)
 
@@ -41,11 +39,13 @@ dim(data_final_bl_scales_lecNeg)
 anova_neg <-aov(data_final_bl_scales_lecNeg$PANAS_NEG.t1 ~ data_final_bl_scales_lecNeg$Group_affect)
 anova(anova_neg)
 TukeyHSD(anova_neg)
+cohens_f(anova_neg)
 aggregate(data_final_bl_scales_lecNeg$PANAS_NEG.t1, list(data_final_bl_scales_lecNeg$Group_affect), FUN=mean)
 
 anova_pos <-aov(data_final_bl_scales_lecNeg$PANAS_POS.t1 ~ data_final_bl_scales_lecNeg$Group_affect)
 anova(anova_pos)
 TukeyHSD(anova_pos)
+cohens_f(anova_pos)
 aggregate(data_final_bl_scales_lecNeg$PANAS_POS.t1, list(data_final_bl_scales_lecNeg$Group_affect), FUN=mean)
 
 ```

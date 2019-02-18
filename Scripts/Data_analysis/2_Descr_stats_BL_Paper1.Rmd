@@ -235,7 +235,6 @@ qqnorm(data_final_bl[, i], main = i)
 
 
 
-```
 
 ```{r plots_exploratory}
 hist(data_final_bl$BPD, breaks=100)
