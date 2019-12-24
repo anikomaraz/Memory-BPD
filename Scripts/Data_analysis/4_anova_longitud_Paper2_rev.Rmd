@@ -1,0 +1,257 @@
+---
+title: "4 longitudinal anova"
+author: "Aniko Maraz"
+date: "November 12, 2019"
+output: html_document
+---
+
+
+
+```{r data_packages, eval=T, echo=T, message=F}
+# load packages
+source("../../Scripts/functions_bpd_memo.R")
+packages <- c("tidyverse", "jtools", "reshape2", "ggpubr", 
+              "afex", "emmeans", "Hmisc", "sjstats", 
+              "multcomp" # for anova posthoc tests
+              )
+load_my_packages(packages)
+
+# user-set options
+overwrite = TRUE # should data/plots/tables be saved/overwritten?
+
+
+# load data
+data_final_long_scales_viz_m <-read.csv2("../../Data/data_final_long_scales_viz_m.csv")
+data_final_long_scales_viz_m$time <- as.factor(data_final_long_scales_viz_m$time)
+
+# double-check sample size
+length(unique(data_final_long_scales_viz_m$session)) # has to be N=558
+head(data_final_long_scales_viz_m)
+
+# remove 3 missing entries (casewise) on gen_impr
+data_final_long_scales_viz_m_noMissing <- data_final_long_scales_viz_m[!is.na(data_final_long_scales_viz_m$gen_impr), ]
+
+# check variables
+names(data_final_long_scales_viz_m_noMissing)
+
+```
+
+```{r set_variables_loops}
+group_affect <- c("negative", "neutral", "positive")
+time_points <- c(1, 2, 3, 4)
+
+```
+
+
+```{r ancova_center}
+# center variables for ANCOVA
+data_final_long_scales_viz_m_noMissing$BPD_scaled <- scale(data_final_long_scales_viz_m_noMissing$BPD, center = TRUE, scale = TRUE)
+data_final_long_scales_viz_m_noMissing$cesd_scaled <- scale(data_final_long_scales_viz_m_noMissing$cesd, center = TRUE, scale = TRUE)
+data_final_long_scales_viz_m_noMissing$EXTR_scaled <- scale(data_final_long_scales_viz_m_noMissing$EXTR, center = TRUE, scale = TRUE)
+data_final_long_scales_viz_m_noMissing$gen_impr_scaled <- scale(data_final_long_scales_viz_m_noMissing$gen_impr, center = TRUE, scale = TRUE)
+data_final_long_scales_viz_m_noMissing$panas_pos_scaled <- scale(data_final_long_scales_viz_m_noMissing$panas_pos, center = TRUE, scale = TRUE)
+data_final_long_scales_viz_m_noMissing$panas_neg_scaled <- scale(data_final_long_scales_viz_m_noMissing$panas_neg, center = TRUE, scale = TRUE)
+
+```
+
+```{r anova_baseline, include=TRUE}
+# BASELINE MODEL
+
+# negatively worded items
+anova_baseline_neg <- aov_car(panas_neg ~ Group_affect * time + Error(X), data = data_final_long_scales_viz_m_noMissing, 
+        observed = c("Group_affect", "time"), 
+        factorize = F)
+anova_baseline_neg
+
+# check the means
+aggregate(panas_neg ~ Group_affect + time, data_final_long_scales_viz_m_noMissing, mean)
+
+# effect size
+cohens_f(aov(panas_neg ~ Group_affect * time + Error(X), data = data_final_long_scales_viz_m_noMissing, 
+        observed = c("Group_affect", "time"), 
+        factorize = F))
+
+
+# positively worded items
+aov_car(panas_pos ~ Group_affect * time + Error(X),
+        data = data_final_long_scales_viz_m_noMissing,
+        observed = c("Group_affect", "time"), 
+        factorize = F)
+
+# check the means
+aggregate(panas_pos ~ Group_affect + time, data_final_long_scales_viz_m_noMissing, mean)
+
+# effect size
+cohens_f(aov(panas_pos ~ Group_affect * time + Error(X), 
+             data = data_final_long_scales_viz_m_noMissing,
+             observed = c("Group_affect", "time"),
+             factorize = F))
+
+cohens_f(aov(panas_neg ~ Group_affect * time + Error(X), 
+             data = data_final_long_scales_viz_m_noMissing,
+             observed = c("Group_affect", "time"),
+             factorize = F))
+
+```
+
+```{r anova_allIn_H123, include=TRUE}
+# time (one out of 4 followup occasions) X Group affect (positive/neutral/negative) and PANAS Pos/Neg as dependent variable (taking 4 values measured at each followup occasion)
+anova_base_pos <- aov_car(panas_pos_scaled ~ Group_affect * time 
+                       + cesd_scaled + EXTR_scaled + gen_impr_scaled + BPD_scaled + Error(X), 
+                        data=data_final_long_scales_viz_m_noMissing, 
+                        observed = c("Group_affect", "time"),
+                        factorize = FALSE, type = "III")
+anova_base_pos
+
+anova_base_neg <- aov_car(panas_neg_scaled ~ Group_affect * time 
+                       + cesd_scaled + EXTR_scaled + gen_impr_scaled + BPD_scaled + Error(X), 
+                        data=data_final_long_scales_viz_m_noMissing, 
+                        observed = c("Group_affect", "time"),
+                        factorize = FALSE, type = "III")
+anova_base_neg 
+
+
+# check contrasts
+emmeans(anova_base_pos, "Group_affect", contr = "pairwise") 
+emmeans(anova_base_pos, "time", contr = "pairwise") 
+emmeans(anova_base_neg, "Group_affect", contr = "pairwise") 
+emmeans(anova_base_neg, "time", contr = "pairwise") 
+
+# effect size
+cohens_f(aov(panas_pos_scaled ~ Group_affect * time 
+                       + cesd_scaled + EXTR_scaled + gen_impr_scaled + BPD_scaled + Error(X), 
+                        data=data_final_long_scales_viz_m_noMissing, 
+                        observed = c("Group_affect", "time"),
+                        factorize = FALSE, type = "III"))
+
+cohens_f(aov(panas_neg_scaled ~ Group_affect * time 
+                       + cesd_scaled + EXTR_scaled + gen_impr_scaled + BPD_scaled + Error(X), 
+                        data=data_final_long_scales_viz_m_noMissing, 
+                        observed = c("Group_affect", "time"),
+                        factorize = FALSE, type = "III"))
+
+```
+
+
+
+```{r cor_matrix, eval=T}
+# check correlation between all variables in ANOVA 
+rcorr(as.matrix(data_final_long_scales_viz_m_noMissing[, c("panas_pos", "panas_neg", "cesd", "gen_impr", "EXTR", "BPD")]))
+
+```
+
+```{r gen_impr_neg_H2.4, eval=T}
+anova_gen_impr_all <- aov(gen_impr ~ time,
+                      data=data_final_long_scales_viz_m_noMissing)
+summary(anova_gen_impr_all)
+
+# per group 
+
+for (i in group_affect) {
+  print(paste(i))
+  anova_gen_impr_group <- aov(gen_impr_scaled ~ time,
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == i, ])
+  print(summary(anova_gen_impr_group))
+}
+
+# posthoc test for the negative group
+summary(glht(aov(gen_impr_scaled ~ time,
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ]),
+             linfct = mcp(time = "Tukey")), test = adjusted(type = "bonferroni"))
+
+```
+
+```{r valence_neg_H2.5, eval=T}
+# with POSITIVELY worded evaluative words (PANAS Positive as dependent VA)
+summary(aov(panas_pos_scaled ~ time,
+                      data=data_final_long_scales_viz_m_noMissing))
+
+# positive evaluations per group
+for (i in group_affect) {
+  print(paste(i))
+  anova <- aov(panas_pos_scaled ~ time,
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == i, ])
+  print(summary(anova))
+}
+
+# posthoc test for the negative group
+summary(glht(aov(panas_pos_scaled ~ time,
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ]),
+             linfct = mcp(time = "Tukey")), test = adjusted(type = "bonferroni"))
+
+
+
+# with NEGATIVELY worded evaluative words (PANAS Negative as dependent VA)
+summary(aov(panas_neg_scaled ~ time,
+                      data=data_final_long_scales_viz_m_noMissing))
+
+# negative evaluations per group
+for (i in group_affect) {
+  print(paste(i))
+  anova <- aov(panas_neg_scaled ~ time,
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == i, ])
+  print(summary(anova))
+}
+
+
+
+## does BPD correlate with the level of change in PANAS/Pos the negative group? 
+# multi-level regression,, time x BPD with valence as dependent VA
+multi_level_regr <- lmer(panas_pos_scaled ~ BPD_scaled + time + (1 | session), 
+                         data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ])
+
+summary(multi_level_regr)
+
+```
+
+```{r variables_per_time_H2.7, eval=T}
+
+# factors influencing valence, separate by time POSITIVE evaluations
+for (i in time_points) {
+  print(paste(i))
+  print(summary(aov(panas_pos_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i, ])))
+}
+
+# factors influencing valence, separate by time NEGATIVE evaluations
+for (i in time_points) {
+  print(paste(i))
+  print(summary(aov(panas_neg_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i, ])))
+}
+
+```
+
+```{r variables_per_time_H2.7_vid_valence, eval=T}
+## are the above results the same in every video valence? 
+
+# POSITIVELY worded evaluations
+for (i in time_points) {
+  for (j in group_affect) {
+    print(paste(i, j, sep=" and "))
+    print(summary(aov(panas_pos_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i &
+                                                                    data_final_long_scales_viz_m_noMissing$Group_affect == j , ])))
+  }
+}
+
+# NEGATIVELY worded evaluations
+for (i in time_points) {
+  for (j in group_affect) {
+    print(paste(i, j, sep=" and "))
+    print(summary(aov(panas_neg_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i &
+                                                                    data_final_long_scales_viz_m_noMissing$Group_affect == j , ])))
+  }
+}
+
+```
+
+
+
+
+
+
+
+
+
