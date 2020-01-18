@@ -1,21 +1,31 @@
+---
+title: "Memory and BPD sentiment analysis"
+author: "Tamas Nagy"
+date: "January 29, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
 library(tidyverse)
 library(tidytext)
 library(hunspell)
 library(openxlsx)
 library(readxl)
-library(sentimentr)
+library(knitr)
 
 source("Scripts/calculate_sentiment.R")
 
-# TODO: correct negating words
-
-# Init project ----------------------------------------------------------------------
 # This defines the groups that are related to the movies
 groups <- tibble(group = c("gr1", "gr2", "gr3", "gr4", "gr5", "gr6", "gr7", "gr8", "gr9"),
                  group_affect = c(rep("positive", 3),
                                 rep("neutral", 3),
                                 rep("negative", 3)))
 
+# Participants to exclude
 sessions_to_exclude <- c(
   # Non-English response
   "qf3LHAoO3suS9hpjgDMR9uf-C-YnLaSlqCrkIVMZbpGTX4bZsVzU6bqevzaiZ80G"
@@ -23,8 +33,11 @@ sessions_to_exclude <- c(
 
 df_raw <- read_csv2("Data/data_final_long_scales_181121.csv")
 
+```
 
-# Extract and process textual info --------------------------------------------------
+# Process data on answer and 
+
+```{r}
 # Get all text data, put it into long format, and add time point and question
 answer_df <-
     df_raw %>%
@@ -36,25 +49,15 @@ answer_df <-
     # Add answer lenght
     mutate(answer_length = str_count(answer, "\\w+"))
 
-
 # Tokenize text by word
 word_df <- 
   answer_df %>% 
   unnest_tokens(word, answer)
 
-# Handle typos ----------------------------------------------------------------------
-# Write typos with context to an xlsx for hand screening
-# DO NOT RUN THIS BECAUSE IT OVERWRITES the hand corrected typo file
-# word_df %>%
-#   mutate(correct = hunspell_check(word)) %>% 
-#   filter(!correct) %>% 
-#   # Add the original sentence for context to help with manual coding
-#   left_join(answer_df, by = c("session","group", "time")) %>% 
-#   mutate(new_word = NA_character_) %>% 
-#   # Make the dataframe easy to read for humans
-#   select(session, group, time, context = value, typo = word, word = new_word) %>%
-#   write.xlsx("Data/text_data_for_typos.xlsx")
+```
 
+# Correct the typos using a hand corrected dictionary of typos
+```{r}
 # Create a hand corrected dictionary of typos
 corrections <- 
   read_excel("Data/text_data_for_typos.xlsx") %>% 
@@ -64,9 +67,6 @@ corrections <-
   # Keep only unique rows
   distinct(.keep_all = TRUE)
 
-# Number of corrected words
-nrow(corrections)
-
 # Correct the typos and re-tokenize
 corrected_word_df <-
   word_df %>% 
@@ -75,19 +75,13 @@ corrected_word_df <-
   select(-corrected_word) %>% 
   # There are several missing space errors that require re-tokenizing
   unnest_tokens(word, word)
+```
 
+The number of corrected words is `r nrow(corrections)` (without duplicates).
 
-# Negating words --------------------------------------------------------------------
+# Calcualte sentiments 
 
-negated_words <-
-corrected_word_df %>% 
-  mutate(negate = if_else(lag(str_detect(word, "^not$|^no$|'t")), -1, 1)) %>% 
-  filter(negate == -1) %>% 
-  # write_excel_csv("negating_words.csv")
-  View()
-
-
-# Add sentiments --------------------------------------------------------------------
+```{r}
 # Afinn returns a number that can be positive and negative, and reflects intensity
 afinn_df <- 
   corrected_word_df %>% 
@@ -145,15 +139,14 @@ log_df <-
   left_join(groups, by = "group") %>% 
   select(session, group, group_affect, everything())
 
-## Save the calculated sentiments to different files
-# write_excel_csv2(afinn_df, "Data/sentiments_afinn.csv")
-# write_excel_csv2(bing_df, "Data/sentiments_bing.csv")
-# write_excel_csv2(nrc_df, "Data/sentiments_nrc.csv")
-# write_excel_csv2(log_df, "Data/sentiments_loughran.csv")
+```
 
 
-# Compare sentiment dictionaries ----------------------------------------------------
+# Compare sentiment dictionaries. 
+How many words are matched in the four dictionaries? We only look at positivity and 
+negativity.
 
+```{r}
 bind_rows("nrc" = nrc_df, 
           "loughran" = log_df, 
           "bing" = bing_df,
@@ -161,61 +154,9 @@ bind_rows("nrc" = nrc_df,
           .id = "lexicon") %>% 
   filter(sentiment %in% c("positive", "negative") | is.na(sentiment)) %>% 
   filter(!sum_senti == 0) %>% 
-  count(lexicon)
-  
-
-bing_df %>% 
-  group_by(group, time) %>% 
-  summarise(sum_senti = mean(ave_sentiment, na.rm = TRUE),
-            n = n()) %>% 
-  ungroup() %>% 
-  left_join(groups, by = "group") %>% 
-  ggplot() +
-  aes(x = time, y = sum_senti, group = group, color = group_affect) +
-  geom_line() +
-  geom_point() +
-  facet_wrap(~group_affect)
+  count(lexicon) %>% 
+  kable()
+```
 
 
-afinn_df %>% 
-  group_by(group, time) %>% 
-  summarise(sum_senti = mean(rel_senti, na.rm = TRUE)) %>% 
-  ungroup() %>% 
-  left_join(groups, by = "group") %>% 
-  ggplot() +
-  aes(x = time, y = sum_senti, group = group, color = group_affect) +
-  geom_line() +
-  geom_point() +
-  facet_wrap(~group_affect)
 
-# Use sentimentr instead of tidytext ------------------------------------------------
-# TODO: correct typos, then run sentimentr
-library(magrittr)
-
-corrections_vec <-
-  corrections %>% 
-  pull(corrected_word) %>% 
-  set_names(corrections$typo)
-
-answer_df %>% 
-  mutate(corrected_answer = str_replace_all(answer, corrections_vec)) %>% 
-  select(session, time, answer, corrected_answer) %>% 
-  filter(str_detect(answer, corrections$typo)) %>%
-  write.xlsx("corrected_answers.xlsx")
-
-answer_sentiments <- 
-  answer_df %>%
-  mutate(sentences = get_sentences(answer)) %$% 
-  sentiment_by(sentences, list(session, group, time))
-
-answer_sentiments %>% 
-  group_by(group, time) %>% 
-  summarise(sum_senti = mean(ave_sentiment, na.rm = TRUE),
-            n = n()) %>% 
-  ungroup() %>% 
-  left_join(groups, by = "group") %>% 
-  ggplot() +
-  aes(x = time, y = sum_senti, group = group, color = group_affect) +
-  geom_line() +
-  geom_point() +
-  facet_wrap(~group_affect)
