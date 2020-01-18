@@ -29,7 +29,7 @@ calculate_sentiment <- function(df,
                 tidyr::spread(sentiment, n) %>% 
                 # Add column name as prefix
                 dplyr::rename_at(dplyr::vars(-id), 
-                                 dplyr::funs(paste0(column, "_", .))) %>% 
+                                 ~paste0(column, "_", .)) %>% 
                 # Put new variables next to the original data frame
                 dplyr::left_join(df, ., by = "id") %>% 
                 # Replace all NAs with 0s
