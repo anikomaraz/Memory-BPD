@@ -4,7 +4,7 @@ output: html_document
 ---
 
 
-```{r get_functions, eval=T, echo=F}
+```{r get_functions, eval=T, echo=F, message=F}
 source("../functions_bpd_memo.R") # helper functions
 
 # load packages
@@ -187,10 +187,42 @@ data_final_long$LEC_positive.t4 <- ifelse(data_final_long[ , lec_items.t4] == "1
 ```
 
 
-```{r bpd_scale, eval=T, echo=T}
+```{r followup_interval, eval=T, echo=T}
+# calculate time interval between assessments
+data_final_long$interval_sc_scP <- difftime(data_final_long$created.scP, data_final_long$created.sc, units='mins')
+data_final_long$interval_scP_t1 <-  difftime(data_final_long$created.t1, data_final_long$created.scP, units='mins')
+data_final_long$interval_t1_t2 <- difftime(data_final_long$created.t2, data_final_long$created.t1, units='mins')
+data_final_long$interval_t2_t3 <- difftime(data_final_long$created.t3, data_final_long$created.t2, units='mins')
+data_final_long$interval_t3_t4 <- difftime(data_final_long$created.t4, data_final_long$created.t3, units='mins')
 
+# get the mean + sd interval time between assesments
+intervals <- matrix(c(mean(data_final_long$interval_sc_scP),
+                      mean(data_final_long$interval_scP_t1),
+                      mean(data_final_long$interval_t1_t2),
+                      mean(data_final_long$interval_t2_t3),
+                      mean(data_final_long$interval_t3_t4), 
+                      sd(data_final_long$interval_sc_scP),
+                      sd(data_final_long$interval_scP_t1),
+                      sd(data_final_long$interval_t1_t2),
+                      sd(data_final_long$interval_t2_t3),
+                      sd(data_final_long$interval_t3_t4), 
+                      median(data_final_long$interval_sc_scP),
+                      median(data_final_long$interval_scP_t1),
+                      median(data_final_long$interval_t1_t2),
+                      median(data_final_long$interval_t2_t3),
+                      median(data_final_long$interval_t3_t4), 
+                      median(data_final_long$interval_sc_scP) / 60, 
+                      median(data_final_long$interval_scP_t1) / 60, 
+                      median(data_final_long$interval_t1_t2) / 60, 
+                      median(data_final_long$interval_t2_t3) / 60, 
+                      median(data_final_long$interval_t3_t4) / 60),
+                      ncol=5,byrow=TRUE)
 
+rownames(intervals) <- c("mean", "sd", "median", "days")
+colnames(intervals) <- c("screen_screenPositive","screenPositive_t1","t1_t2", "t2_t3", "t3_t4")
+intervals <- as.table(intervals)
 
+intervals
 ```
 
 

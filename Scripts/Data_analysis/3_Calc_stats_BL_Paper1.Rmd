@@ -231,7 +231,7 @@ apa.cor.table(corr_table_gr[corr_table_gr$Group_affect == "negative", ],
 plot_bpd_y <- function (data=data_final_bl_scales, y=y, y_title=y_title, breaks=breaks) {
 plot <- ggplot(data, aes_string(x="BPD", y=y, color="Group_affect")) +
  geom_point(alpha=0.7) + geom_jitter() +
-  geom_smooth(aes(fill=Group_affect)) +
+  geom_smooth(aes(fill=Group_affect), method="lm", se=TRUE) +
   theme_apa(legend.font.size = 20) +
   scale_color_manual(values= c("positive" = "red", "neutral" = "green", "negative" = "blue")) + 
   scale_fill_manual(values=c("positive" = "red", "neutral" = "green", "negative" = "blue")) +

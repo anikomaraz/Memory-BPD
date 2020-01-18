@@ -3,7 +3,7 @@ title: "Calculated stats longitudinal Paper2"
 output: html_document
 ---
 
-```{r data_packages, eval=T, echo=T}
+```{r data_packages, eval=T, echo=T, message=F}
 # load packages
 source("../../Scripts/functions_bpd_memo.R")
 packages <- c("tidyverse", "jtools", "reshape2", "ggpubr")
@@ -40,7 +40,9 @@ data_viz_panas_pos_m$time <- str_sub(data_viz_panas_pos_m$time, -1, -1)
 data_viz_panas_neg_m <- gather(data = data_viz_panas_neg, "PANAS_NEG.t1", "PANAS_NEG.t2", "PANAS_NEG.t3", "PANAS_NEG.t4", key="time", value="panas_neg")
 data_viz_panas_neg_m$time <- str_sub(data_viz_panas_neg_m$time, -1, -1)
 
-data_viz_cesd_m <- gather(data = data_viz_cesd, "CESD.t1", "CESD.t2", "CESD.t3", "CESD.t4", key="time", value="cesd")
+data_viz_cesd_m <- gather(data = data_viz_cesd, "CESD.t1", "CESD.t2", "CESD.t3", "CESD.t4", key="time", value="cesd_r")
+#reverse-code mood so that higher scores indicate higher, or happier mood (currently they indicate depressed mood)
+data_viz_cesd_m$cesd <- max(data_viz_cesd_m$cesd) - data_viz_cesd_m$cesd
 data_viz_cesd_m$time <- str_sub(data_viz_cesd_m$time, -1, -1)
 
 data_viz_gen_impr_m <- gather(data = data_viz_gen_impr, "GEN_IMPR.t1", "GEN_IMPR.t2", "GEN_IMPR.t3", "GEN_IMPR.t4", key="time", value="gen_impr")
@@ -51,10 +53,16 @@ data_final_long_scales_viz_m <- list(data_viz_panas_pos_m, data_viz_panas_neg_m,
                                      data_viz_gen_impr_m, data_viz_std) %>% 
                                 reduce(full_join)
 
+
+```
+
+```{r save_data}
+write.csv2(data_final_long_scales_viz_m, file="../../Data/data_final_long_scales_viz_m.csv")
+
 ```
 
 ```{r standardisation, eval=T}
-std_vars <- c("panas_pos", "panas_neg", "cesd", "gen_impr")
+std_vars <- c("panas_pos", "panas_neg", "cesd_r", "gen_impr")
 
 # standardise variables
 for (i in std_vars) {
@@ -62,7 +70,7 @@ for (i in std_vars) {
 }
 
 # create function to calculate mean and sd
-data_mean_sd <- function(varname, groupnames) {
+data_mean_sd_calc <- function(varname, groupnames) {
   require(plyr)
   summary_function <- function(x, col) {
     c(mean=mean(x[[col]], na.rm=TRUE), 
@@ -75,18 +83,19 @@ data_mean_sd <- function(varname, groupnames) {
 ```
 
 ```{r mean_sd, eval=T}
-means <- c("time", "panas_pos_mean", "panas_neg_mean", "cesd_mean", "gen_impr_mean")
-sd <- c("time", "panas_pos_sd", "panas_neg_sd", "cesd_sd", "gen_impr_sd")
+means <- c("time", "panas_pos_mean", "panas_neg_mean", "cesd_r_mean", "gen_impr_mean")
+sd <- c("time", "panas_pos_sd", "panas_neg_sd", "cesd_r_sd", "gen_impr_sd")
 
 # for the total sample
-data_mean_sd_panas_pos <- data_mean_sd(varname = "panas_pos", groupnames="time")
-data_mean_sd_panas_neg <- data_mean_sd(varname = "panas_neg", groupnames=c("time"))
-data_mean_sd_cesd <- data_mean_sd(varname = "cesd", groupnames=c("time"))
-data_mean_sd_gen_impr <- data_mean_sd(varname = "gen_impr", groupnames=c("time"))
+data_mean_sd_panas_pos <- data_mean_sd_calc(varname = "panas_pos", groupnames="time")
+data_mean_sd_panas_neg <- data_mean_sd_calc(varname = "panas_neg", groupnames=c("time"))
+data_mean_sd_cesd <- data_mean_sd_calc(varname = "cesd_r", groupnames=c("time"))
+data_mean_sd_gen_impr <- data_mean_sd_calc(varname = "gen_impr", groupnames=c("time"))
+
 
 data_mean_sd <- full_join(data_mean_sd_panas_pos, data_mean_sd_panas_neg, by=c("time")) %>% 
   full_join(data_mean_sd_cesd, by=c("time")) %>% 
-  full_join(data_mean_sd_gen_impr, by=c("time"))
+  full_join(data_mean_sd_gen_impr, by=c("time")) 
 
 data_plot_means_melt <- melt(data_mean_sd[, means], id="time")
 rename(data_plot_means_melt, c(value="mean"))
@@ -105,15 +114,15 @@ data_plot_melt <- rename(data_plot_melt, c(value.x = "mean", value.y="sd", varia
 
 ```{r mean_sd_groups, eval=T}
 # for groups
-means_gr <- c("time", "Group_affect", "panas_pos_mean", "panas_neg_mean", "cesd_mean", "gen_impr_mean")
-sd_gr <- c("time",  "Group_affect", "panas_pos_sd", "panas_neg_sd", "cesd_sd", "gen_impr_sd")
+means_gr <- c("time", "Group_affect", "panas_pos_mean", "panas_neg_mean", "cesd_r_mean", "gen_impr_mean")
+sd_gr <- c("time",  "Group_affect", "panas_pos_sd", "panas_neg_sd", "cesd_r_sd", "gen_impr_sd")
 
 
 # calculate mean and sd
-data_mean_sd_panas_pos_gr <- data_mean_sd(varname = "panas_pos", groupnames=c("time", "Group_affect"))
-data_mean_sd_panas_neg_gr <- data_mean_sd(varname = "panas_neg", groupnames=c("time", "Group_affect"))
-data_mean_sd_cesd_gr <- data_mean_sd(varname = "cesd", groupnames=c("time", "Group_affect"))
-data_mean_sd_gen_impr_gr <- data_mean_sd(varname = "gen_impr", groupnames=c("time", "Group_affect"))
+data_mean_sd_panas_pos_gr <- data_mean_sd_calc(varname = "panas_pos", groupnames=c("time", "Group_affect"))
+data_mean_sd_panas_neg_gr <- data_mean_sd_calc(varname = "panas_neg", groupnames=c("time", "Group_affect"))
+data_mean_sd_cesd_gr <- data_mean_sd_calc(varname = "cesd_r", groupnames=c("time", "Group_affect"))
+data_mean_sd_gen_impr_gr <- data_mean_sd_calc(varname = "gen_impr", groupnames=c("time", "Group_affect"))
 
 # join data containing mean and sd
 data_mean_sd_gr <- full_join(data_mean_sd_panas_pos_gr, data_mean_sd_panas_neg_gr, by=c("time", "Group_affect")) %>% 
@@ -139,8 +148,8 @@ data_plot_melt_gr <- full_join(data_plot_means_melt_gr, data_plot_sd_melt_gr, by
 
 
 ```{r visualisation_plots, eval=T, echo=T}
-plot_groups <- function(affect = "positive", title="Positive (N=215)", 
-                        n_group = 183, groups = kilFALSE) {
+plot_groups <- function(affect = "positive", title="Positive (N=215)",
+                        n_group = 183, groups = FALSE) {
   
   # data
   if(groups == TRUE) {  
@@ -150,16 +159,19 @@ plot_groups <- function(affect = "positive", title="Positive (N=215)",
           }
   
   # plotting
-  plot_groups <- ggplot(data = data, aes(x = time, y = mean)) +
-    geom_point(size = 2, aes(color = scale)) +  
-    geom_line(aes(group = scale, colour = scale), size = 1.5) +
+  plot_groups <-  
+    ggplot(data = data, aes(x = time, y = mean, colour=scale)) +
+    geom_point(size = 2) +  
+    geom_line(aes(group = scale), size = 1.5) +
       scale_color_manual(values = c("purple", "orange", "blue", "red"),  
-                        labels = c("Mood \n(positive to negative)",
-                             "General Impression \n(negtive to positive)",
+                        labels = c("Mood \n(negative to positive)",
+                             "General Impression \n(negative to positive)",
                              "Negative Evaluation",
                              "Positive Evaluation")) +
-    geom_errorbar(aes(ymin = mean - (sd / sqrt(n_group)), ymax = mean + (sd / sqrt(n_group)), color = scale), 
-                  width = 0.2, position = position_dodge()) +
+    geom_errorbar(aes(ymin = mean - (sd / sqrt(n_group)), 
+                      ymax = mean + (sd / sqrt(n_group))), 
+                  width = 0.2, 
+                  position = position_dodge()) +
     
     ylim(-0.56, 0.7) +
     theme_apa() + 
@@ -167,7 +179,7 @@ plot_groups <- function(affect = "positive", title="Positive (N=215)",
     xlab("Follow-up occasion") +
     ylab("Standardised score")  
   return(plot_groups)
-  }
+}
 
 
 # TOTAL
@@ -177,6 +189,8 @@ plot_total <- plot_groups(title="Total (N=558)",
 # POSITIVE
 plot_pos <- plot_groups(affect="positive", title="Positive (N=156)", 
                         n_group = 183, groups=TRUE)
+
+plot_pos
 
 # NEUTRAL
 plot_neu <- plot_groups(affect="neutral", title="Neutral (N=219)", 
