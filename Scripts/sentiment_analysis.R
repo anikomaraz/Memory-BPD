@@ -4,6 +4,7 @@ library(hunspell)
 library(openxlsx)
 library(readxl)
 library(sentimentr)
+library(textfeatures)
 
 source("Scripts/calculate_sentiment.R")
 
@@ -12,9 +13,9 @@ source("Scripts/calculate_sentiment.R")
 # Init project ----------------------------------------------------------------------
 # This defines the groups that are related to the movies
 groups <- tibble(group = c("gr1", "gr2", "gr3", "gr4", "gr5", "gr6", "gr7", "gr8", "gr9"),
-                 group_affect = c(rep("positive", 3),
-                                rep("neutral", 3),
-                                rep("negative", 3)))
+                 group_affect = c(rep("Positive", 3),
+                                rep("Neutral", 3),
+                                rep("Negative", 3)))
 
 sessions_to_exclude <- c(
   # Non-English response
@@ -82,7 +83,7 @@ corrected_word_df <-
 negated_words <-
 corrected_word_df %>% 
   mutate(negate = if_else(lag(str_detect(word, "^not$|^no$|'t")), -1, 1)) %>% 
-  filter(negate == -1) %>% 
+  filter(negate == -1) %>%
   # write_excel_csv("negating_words.csv")
   View()
 
@@ -96,7 +97,7 @@ afinn_df <-
     group_by(session, group, time) %>% 
     # Get the summarised sentiment and the number of words in the answer
     summarise(answer_length = first(answer_length),
-              sum_senti = sum(score, na.rm = TRUE),
+              sum_senti = sum(value, na.rm = TRUE),
               rel_senti = sum_senti/answer_length) %>% 
     ungroup() %>% 
     left_join(groups, by = "group") %>% 
@@ -164,6 +165,7 @@ bind_rows("nrc" = nrc_df,
   count(lexicon)
   
 
+# !
 bing_df %>% 
   group_by(group, time) %>% 
   summarise(sum_senti = mean(ave_sentiment, na.rm = TRUE),
@@ -184,7 +186,7 @@ afinn_df %>%
   left_join(groups, by = "group") %>% 
   ggplot() +
   aes(x = time, y = sum_senti, group = group, color = group_affect) +
-  geom_line() +
+  geom_line(size = 1.1) +
   geom_point() +
   facet_wrap(~group_affect)
 
