@@ -78,6 +78,9 @@ aov_car(panas_pos ~ Group_affect * time + Error(X),
         observed = c("Group_affect", "time"), 
         factorize = F)
 
+lmer(panas_pos ~ Group_affect + (Group_affect | time),
+        data = data_final_long_scales_viz_m_noMissing)
+
 # check the means
 aggregate(panas_pos ~ Group_affect + time, data_final_long_scales_viz_m_noMissing, mean)
 
@@ -177,7 +180,7 @@ for (i in group_affect) {
 # posthoc test for the negative group
 summary(glht(aov(panas_pos_scaled ~ time,
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ]),
-             linfct = mcp(time = "Tukey")), test = adjusted(type = "bonferroni"))
+             linfct = mcp(time = "Tukey")), test = adjusted(type = "fdr"))
 
 
 
