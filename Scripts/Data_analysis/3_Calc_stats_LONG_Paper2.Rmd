@@ -163,21 +163,22 @@ plot_groups <- function(affect = "positive", title="Positive (N=215)",
     ggplot(data = data, aes(x = time, y = mean, colour=scale)) +
     geom_point(size = 2) +  
     geom_line(aes(group = scale), size = 1.5) +
-      scale_color_manual(values = c("purple", "orange", "blue", "red"),  
-                        labels = c("Mood \n(negative to positive)",
+      scale_color_manual(values = c("#999999", "#009E73", "#0072B2", "#D55E00"),  
+                        labels = c("Negative Mood",
                              "General Impression \n(negative to positive)",
-                             "Negative Evaluation",
-                             "Positive Evaluation")) +
+                             "PANAS Negative",
+                             "PANAS Positive")) +
     geom_errorbar(aes(ymin = mean - (sd / sqrt(n_group)), 
                       ymax = mean + (sd / sqrt(n_group))), 
-                  width = 0.2, 
-                  position = position_dodge()) +
+                  width = 0.2 
+                  # position = position_dodge()
+                  ) +
     
     ylim(-0.56, 0.7) +
     theme_apa() + 
     labs(title = title) +
-    xlab("Follow-up occasion") +
-    ylab("Standardised score")  
+    xlab("Time point") +
+    ylab("Standardised mean value (SD)")  
   return(plot_groups)
 }
 
@@ -187,17 +188,17 @@ plot_total <- plot_groups(title="Total (N=558)",
                           n_group=558, groups=FALSE)
 
 # POSITIVE
-plot_pos <- plot_groups(affect="positive", title="Positive (N=156)", 
+plot_pos <- plot_groups(affect="positive", title="Positive video valence (N=156)", 
                         n_group = 183, groups=TRUE)
 
 plot_pos
 
 # NEUTRAL
-plot_neu <- plot_groups(affect="neutral", title="Neutral (N=219)", 
+plot_neu <- plot_groups(affect="neutral", title="Neutral video valence (N=219)", 
                         n_group=219, groups=TRUE)
 
 # NEGATIVE
-plot_neg <- plot_groups(affect="negative", title="Negative (N=183)", 
+plot_neg <- plot_groups(affect="negative", title="Negative video valence (N=183)", 
                         n_group=156, groups=TRUE)
   
 ```
