@@ -60,40 +60,24 @@ data_final_long_scales_viz_m_noMissing$panas_neg_scaled <- scale(data_final_long
 # negatively worded items
 anova_baseline_neg <- aov_car(panas_neg ~ Group_affect * time + Error(X), data = data_final_long_scales_viz_m_noMissing, 
         observed = c("Group_affect", "time"), 
-        factorize = F)
+        factorize = F, anova_table = list(correction = "none", es ="pes"))
 anova_baseline_neg
 
 # check the means
 aggregate(panas_neg ~ Group_affect + time, data_final_long_scales_viz_m_noMissing, mean)
-
-# effect size
-cohens_f(aov(panas_neg ~ Group_affect * time + Error(X), data = data_final_long_scales_viz_m_noMissing, 
-        observed = c("Group_affect", "time"), 
-        factorize = F))
 
 
 # positively worded items
 aov_car(panas_pos ~ Group_affect * time + Error(X),
         data = data_final_long_scales_viz_m_noMissing,
         observed = c("Group_affect", "time"), 
-        factorize = F)
+        factorize = F, anova_table = list(correction = "none", es ="pes"))
 
 lmer(panas_pos ~ Group_affect + (Group_affect | time),
         data = data_final_long_scales_viz_m_noMissing)
 
 # check the means
 aggregate(panas_pos ~ Group_affect + time, data_final_long_scales_viz_m_noMissing, mean)
-
-# effect size
-cohens_f(aov(panas_pos ~ Group_affect * time + Error(X), 
-             data = data_final_long_scales_viz_m_noMissing,
-             observed = c("Group_affect", "time"),
-             factorize = F))
-
-cohens_f(aov(panas_neg ~ Group_affect * time + Error(X), 
-             data = data_final_long_scales_viz_m_noMissing,
-             observed = c("Group_affect", "time"),
-             factorize = F))
 
 ```
 
@@ -103,14 +87,16 @@ anova_base_pos <- aov_car(panas_pos_scaled ~ Group_affect * time
                        + cesd_scaled + EXTR_scaled + gen_impr_scaled + BPD_scaled + Error(X), 
                         data=data_final_long_scales_viz_m_noMissing, 
                         observed = c("Group_affect", "time"),
-                        factorize = FALSE, type = "III")
+                        factorize = FALSE, type = "III", 
+                       anova_table = list(correction = "none", es ="pes"))
 anova_base_pos
 
 anova_base_neg <- aov_car(panas_neg_scaled ~ Group_affect * time 
                        + cesd_scaled + EXTR_scaled + gen_impr_scaled + BPD_scaled + Error(X), 
                         data=data_final_long_scales_viz_m_noMissing, 
                         observed = c("Group_affect", "time"),
-                        factorize = FALSE, type = "III")
+                        factorize = FALSE, type = "III", 
+                       anova_table = list(correction = "none", es ="pes"))
 anova_base_neg 
 
 
@@ -120,18 +106,6 @@ emmeans(anova_base_pos, "time", contr = "pairwise")
 emmeans(anova_base_neg, "Group_affect", contr = "pairwise") 
 emmeans(anova_base_neg, "time", contr = "pairwise") 
 
-# effect size
-cohens_f(aov(panas_pos_scaled ~ Group_affect * time 
-                       + cesd_scaled + EXTR_scaled + gen_impr_scaled + BPD_scaled + Error(X), 
-                        data=data_final_long_scales_viz_m_noMissing, 
-                        observed = c("Group_affect", "time"),
-                        factorize = FALSE, type = "III"))
-
-cohens_f(aov(panas_neg_scaled ~ Group_affect * time 
-                       + cesd_scaled + EXTR_scaled + gen_impr_scaled + BPD_scaled + Error(X), 
-                        data=data_final_long_scales_viz_m_noMissing, 
-                        observed = c("Group_affect", "time"),
-                        factorize = FALSE, type = "III"))
 
 ```
 
@@ -147,6 +121,7 @@ rcorr(as.matrix(data_final_long_scales_viz_m_noMissing[, c("panas_pos", "panas_n
 anova_gen_impr_all <- aov(gen_impr ~ time,
                       data=data_final_long_scales_viz_m_noMissing)
 summary(anova_gen_impr_all)
+eta_sq(anova_gen_impr_all, partial=TRUE)
 
 # per group 
 
@@ -155,19 +130,25 @@ for (i in group_affect) {
   anova_gen_impr_group <- aov(gen_impr_scaled ~ time,
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == i, ])
   print(summary(anova_gen_impr_group))
+  print(eta_sq(anova_gen_impr_group))
 }
 
 # posthoc test for the negative group
-summary(glht(aov(gen_impr_scaled ~ time,
+posthoc_test <- glht(aov(gen_impr_scaled ~ time,
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ]),
-             linfct = mcp(time = "Tukey")), test = adjusted(type = "bonferroni"))
+             linfct = mcp(time = "Tukey"), test = adjusted(type = "bonferroni"))
+summary(posthoc_test)
+eta_sq(posthoc_test)
 
 ```
 
 ```{r valence_neg_H2.5, eval=T}
 # with POSITIVELY worded evaluative words (PANAS Positive as dependent VA)
-summary(aov(panas_pos_scaled ~ time,
-                      data=data_final_long_scales_viz_m_noMissing))
+anova_pos <-aov(panas_pos_scaled ~ time,
+                      data=data_final_long_scales_viz_m_noMissing)
+summary(anova_pos)
+eta_sq(anova_pos, partial=TRUE)
+
 
 # positive evaluations per group
 for (i in group_affect) {
@@ -175,6 +156,7 @@ for (i in group_affect) {
   anova <- aov(panas_pos_scaled ~ time,
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == i, ])
   print(summary(anova))
+  print(eta_sq(anova, partial=TRUE))
 }
 
 # posthoc test for the negative group
@@ -185,8 +167,10 @@ summary(glht(aov(panas_pos_scaled ~ time,
 
 
 # with NEGATIVELY worded evaluative words (PANAS Negative as dependent VA)
-summary(aov(panas_neg_scaled ~ time,
-                      data=data_final_long_scales_viz_m_noMissing))
+anova_neg <- aov(panas_neg_scaled ~ time,
+                      data=data_final_long_scales_viz_m_noMissing)
+summary(anova_neg)
+eta_sq(anova_neg)
 
 # negative evaluations per group
 for (i in group_affect) {
@@ -194,6 +178,7 @@ for (i in group_affect) {
   anova <- aov(panas_neg_scaled ~ time,
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == i, ])
   print(summary(anova))
+  print(eta_sq(anova, partial=TRUE))
 }
 
 
