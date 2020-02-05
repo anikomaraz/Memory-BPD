@@ -164,7 +164,7 @@ plot_groups <- function(affect = "positive", title="Positive (N=215)",
     geom_point(size = 2) +  
     geom_line(aes(group = scale), size = 1.5) +
       scale_color_manual(values = c("#999999", "#009E73", "#0072B2", "#D55E00"),  
-                        labels = c("Negative Mood",
+                        labels = c("Negative Mood \n(of the participant)",
                              "General Impression \n(negative to positive)",
                              "PANAS Negative",
                              "PANAS Positive")) +

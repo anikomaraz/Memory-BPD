@@ -134,11 +134,9 @@ for (i in group_affect) {
 }
 
 # posthoc test for the negative group
-posthoc_test <- glht(aov(gen_impr_scaled ~ time,
+summary(glht(aov(gen_impr_scaled ~ time,
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ]),
-             linfct = mcp(time = "Tukey"), test = adjusted(type = "bonferroni"))
-summary(posthoc_test)
-eta_sq(posthoc_test)
+             linfct = mcp(time = "Tukey")), test = adjusted(type = "bonferroni"))
 
 ```
 
@@ -178,7 +176,7 @@ for (i in group_affect) {
   anova <- aov(panas_neg_scaled ~ time,
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == i, ])
   print(summary(anova))
-  print(eta_sq(anova, partial=TRUE))
+  print(eta_sq(anova, partial=T))
 }
 
 
@@ -192,34 +190,40 @@ summary(multi_level_regr)
 
 ```
 
-```{r variables_per_time_H2.7, eval=T}
+```{r variables_per_time_H2.6, eval=T}
 
 # factors influencing valence, separate by time POSITIVE evaluations
 for (i in time_points) {
   print(paste(i))
-  print(summary(aov(panas_pos_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
-                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i, ])))
+  anova <- aov(panas_pos_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i, ])
+  print(summary(anova))
+  print(eta_sq(anova, partial=TRUE))
 }
 
 # factors influencing valence, separate by time NEGATIVE evaluations
 for (i in time_points) {
   print(paste(i))
-  print(summary(aov(panas_neg_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
-                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i, ])))
+  anova <- aov(panas_neg_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i, ])
+  print(summary(anova))
+  print(eta_sq(anova, partial=TRUE))
 }
 
 ```
 
-```{r variables_per_time_H2.7_vid_valence, eval=T}
+```{r variables_per_time_H2.6_vid_valence, eval=T}
 ## are the above results the same in every video valence? 
 
 # POSITIVELY worded evaluations
 for (i in time_points) {
   for (j in group_affect) {
     print(paste(i, j, sep=" and "))
-    print(summary(aov(panas_pos_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
+    anova <- aov(panas_pos_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i &
-                                                                    data_final_long_scales_viz_m_noMissing$Group_affect == j , ])))
+                                                                    data_final_long_scales_viz_m_noMissing$Group_affect == j , ])
+    # print(summary(anova))
+    print(eta_sq(anova, partial=TRUE))
   }
 }
 
@@ -227,14 +231,43 @@ for (i in time_points) {
 for (i in time_points) {
   for (j in group_affect) {
     print(paste(i, j, sep=" and "))
-    print(summary(aov(panas_neg_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
+    anova <-aov(panas_neg_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i &
-                                                                    data_final_long_scales_viz_m_noMissing$Group_affect == j , ])))
+                                                                    data_final_long_scales_viz_m_noMissing$Group_affect == j , ])
+    # print(summary(anova))
+    print(eta_sq(anova, partial=TRUE))
   }
 }
 
 ```
 
+```{r variables_per_time_H2.6_vid_valence_TO_TABLE, eval=T}
+## are the above results the same in every video valence? 
+
+# POSITIVELY worded evaluations
+for (i in time_points) {
+  for (j in group_affect) {
+    print(paste(i, j, sep=" and "))
+    anova <- aov(panas_pos_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i &
+                                                                    data_final_long_scales_viz_m_noMissing$Group_affect == j , ])
+   print(eta_sq(anova, partial=TRUE))
+  }
+}
+
+# NEGATIVELY worded evaluations
+for (i in time_points) {
+  for (j in group_affect) {
+    print(paste(i, j, sep=" and "))
+    anova <-aov(panas_neg_scaled ~ BPD_scaled + cesd_scaled + gen_impr_scaled + EXTR_scaled, 
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$time == i &
+                                                                    data_final_long_scales_viz_m_noMissing$Group_affect == j , ])
+    print(summary(anova))
+    print(eta_sq(anova, partial=TRUE))
+  }
+}
+
+```
 
 
 
