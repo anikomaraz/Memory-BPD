@@ -261,6 +261,12 @@ write.csv2(data_final_long, file="../../Data/data_final_long_scales_181121.csv")
 
 ```
 
+```{r corr_msiBPD_mbpd, eval=T}
+cor(data_scales$BPD_screen, data_scales$BPD)
+
+```
+
+
 
 
 

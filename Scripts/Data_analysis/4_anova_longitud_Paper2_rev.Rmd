@@ -136,7 +136,7 @@ for (i in group_affect) {
 # posthoc test for the negative group
 summary(glht(aov(gen_impr_scaled ~ time,
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ]),
-             linfct = mcp(time = "Tukey")), test = adjusted(type = "bonferroni"))
+             linfct = mcp(time = "Welsh")), test = adjusted(type = "fdr"))
 
 ```
 
@@ -161,7 +161,6 @@ for (i in group_affect) {
 summary(glht(aov(panas_pos_scaled ~ time,
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ]),
              linfct = mcp(time = "Tukey")), test = adjusted(type = "fdr"))
-
 
 
 # with NEGATIVELY worded evaluative words (PANAS Negative as dependent VA)

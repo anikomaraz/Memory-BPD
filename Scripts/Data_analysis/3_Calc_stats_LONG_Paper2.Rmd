@@ -10,7 +10,7 @@ packages <- c("tidyverse", "jtools", "reshape2", "ggpubr")
 load_my_packages(packages)
 
 # user-set options
-overwrite = TRUE # should data/plots/tables be saved/overwritten?
+overwrite = FALSE # should data/plots/tables be saved/overwritten?
 
 
 # load data
@@ -74,11 +74,13 @@ data_mean_sd_calc <- function(varname, groupnames) {
   require(plyr)
   summary_function <- function(x, col) {
     c(mean=mean(x[[col]], na.rm=TRUE), 
-      sd=sd(x[[col]], na.rm = TRUE))
+      sd=sd(x[[col]], na.rm = TRUE), 
+      n=length(x[[col]]))
   }
   data_sum <- ddply(data_final_long_scales_viz_m, groupnames, .fun=summary_function, varname)
   data_sum <- rename(data_sum, c("mean" = paste(varname, "mean", sep="_"), "sd" = paste(varname, "sd", sep="_")))
 }
+
 
 ```
 
@@ -104,6 +106,12 @@ data_plot_means_melt$variable <- str_sub(data_plot_means_melt$variable, start=1,
 data_plot_sd_melt <- melt(data_mean_sd[, sd], id="time")
 rename(data_plot_sd_melt, c(value="sd"))
 data_plot_sd_melt$variable <- str_sub(data_plot_sd_melt$variable, start=1, end=-4)
+
+```
+
+
+
+```{r join_mean_sd_n, eval=T}
 
 # join mean and sd
 data_plot_melt <- full_join(data_plot_means_melt, data_plot_sd_melt, by=c("time", "variable"))
@@ -203,8 +211,6 @@ plot_neg <- plot_groups(affect="negative", title="Negative video valence (N=183)
   
 ```
 
-
-
 ```{r combine_plots}
 # combine plots
 plot_time <- ggarrange(plot_total, plot_pos, plot_neu, plot_neg, 
@@ -218,5 +224,60 @@ if(overwrite) {
   ggsave("plot_time.jpg", plot=plot_time, 
        width=30, height=20, units="cm")
 }
+```
+
+```{r add_group_number_to_data, eval=T}
+
+# add group number
+data_plot_melt_gr <- full_join(
+  # source data with the group numbers
+  aggregate(rep(1, length(data_final_long_scales_viz_m$Group_affect)),
+                                 by=list(Group_affect = data_final_long_scales_viz_m$Group_affect,
+                                         time = data_final_long_scales_viz_m$time), FUN=sum), 
+  # data to build the plot from (summary statistics)
+  data_plot_melt_gr, 
+  by=c("Group_affect"="Group_affect", "time" = "time")
+)
+
+names(data_plot_melt_gr)[names(data_plot_melt_gr) == "x"] <- "n"
+
+levels(data_plot_melt_gr$scale) <- c("Negative Mood \n(of the participant)",
+                             "General Impression \n(negative to positive)",
+                             "PANAS Negative",
+                             "PANAS Positive")
+
+
+```
+
+```{r visualisation_plots_faceting, eval=T, echo=T}
+
+scale_names <- c(
+  "cesd_r" = "Negative Mood \n(of the participant)",
+  "gen_impr" = "Character evaluation:\nGeneral Impression",
+  "panas_neg" = "Character evaluation:\nPANAS Negative",
+  "panas_pos" = "Character evaluation:\nPANAS Positive")
+
+plot_time_facet <- ggplot(data = data_plot_melt_gr, aes(x = time, y = mean, colour=Group_affect)) +
+    geom_point(size = 2) +
+    geom_line(aes(group=Group_affect), size=1.5) +
+      scale_color_manual(values = c("#0072B2", "#009E73", "#D55E00")) +
+                             
+    # labs(title = scale) +
+    # ylim(-0.56, 0.7) +
+  
+    geom_errorbar(aes(ymin = mean - (sd / sqrt(n)), 
+                      ymax = mean + (sd / sqrt(n))), 
+                  width = 0.4) + 
+                
+    facet_grid(~ scale, 
+               labeller = as_labeller(scale_names)) +
+    theme_apa(legend.pos = "top") +
+    xlab("Time point") +
+    ylab("Standardised mean value (SD)")   
+
+plot_time_facet
+
+ggsave("plot_time_facet.jpg", plot=plot_time_facet, 
+       width=30, height=15, units="cm")
 ```
 
