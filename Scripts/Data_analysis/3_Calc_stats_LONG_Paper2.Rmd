@@ -155,77 +155,6 @@ data_plot_melt_gr <- full_join(data_plot_means_melt_gr, data_plot_sd_melt_gr, by
 ```
 
 
-```{r visualisation_plots, eval=T, echo=T}
-plot_groups <- function(affect = "positive", title="Positive (N=215)",
-                        n_group = 183, groups = FALSE) {
-  
-  # data
-  if(groups == TRUE) {  
-  data = data_plot_melt_gr[data_plot_melt_gr$Group_affect == affect, ] 
-    } else {
-  data = data_plot_melt 
-          }
-  
-  # plotting
-  plot_groups <-  
-    ggplot(data = data, aes(x = time, y = mean, colour=scale)) +
-    geom_point(size = 2) +  
-    geom_line(aes(group = scale), size = 1.5) +
-      scale_color_manual(values = c("#999999", "#009E73", "#0072B2", "#D55E00"),  
-                        labels = c("Negative Mood \n(of the participant)",
-                             "General Impression \n(negative to positive)",
-                             "PANAS Negative",
-                             "PANAS Positive")) +
-    geom_errorbar(aes(ymin = mean - (sd / sqrt(n_group)), 
-                      ymax = mean + (sd / sqrt(n_group))), 
-                  width = 0.2 
-                  # position = position_dodge()
-                  ) +
-    
-    ylim(-0.56, 0.7) +
-    theme_apa() + 
-    labs(title = title) +
-    xlab("Time point") +
-    ylab("Standardised mean value (SD)")  
-  return(plot_groups)
-}
-
-
-# TOTAL
-plot_total <- plot_groups(title="Total (N=558)", 
-                          n_group=558, groups=FALSE)
-
-# POSITIVE
-plot_pos <- plot_groups(affect="positive", title="Positive video valence (N=156)", 
-                        n_group = 183, groups=TRUE)
-
-plot_pos
-
-# NEUTRAL
-plot_neu <- plot_groups(affect="neutral", title="Neutral video valence (N=219)", 
-                        n_group=219, groups=TRUE)
-
-# NEGATIVE
-plot_neg <- plot_groups(affect="negative", title="Negative video valence (N=183)", 
-                        n_group=156, groups=TRUE)
-  
-```
-
-```{r combine_plots}
-# combine plots
-plot_time <- ggarrange(plot_total, plot_pos, plot_neu, plot_neg, 
-          ncol=2, nrow=2, 
-          hjust= -1, vjust=2, common.legend = T)
-
-plot_time
-
-# save final plot
-if(overwrite) {
-  ggsave("plot_time.jpg", plot=plot_time, 
-       width=30, height=20, units="cm")
-}
-```
-
 ```{r add_group_number_to_data, eval=T}
 
 # add group number
@@ -241,12 +170,6 @@ data_plot_melt_gr <- full_join(
 
 names(data_plot_melt_gr)[names(data_plot_melt_gr) == "x"] <- "n"
 
-levels(data_plot_melt_gr$scale) <- c("Negative Mood \n(of the participant)",
-                             "General Impression \n(negative to positive)",
-                             "PANAS Negative",
-                             "PANAS Positive")
-
-
 ```
 
 ```{r visualisation_plots_faceting, eval=T, echo=T}
@@ -257,27 +180,34 @@ scale_names <- c(
   "panas_neg" = "Character evaluation:\nPANAS Negative",
   "panas_pos" = "Character evaluation:\nPANAS Positive")
 
-plot_time_facet <- ggplot(data = data_plot_melt_gr, aes(x = time, y = mean, colour=Group_affect)) +
+comparisons_plot <- list(c("1", "2"), c("1", "3"), c("1", "4"), 
+                         c("2", "3"), c("2", "4"), 
+                         c("3", "4"))
+plot_time_facet <-
+  ggplot(data = data_plot_melt_gr, aes(x = time, y = mean, colour=Group_affect)) +
     geom_point(size = 2) +
     geom_line(aes(group=Group_affect), size=1.5) +
       scale_color_manual(values = c("#0072B2", "#009E73", "#D55E00")) +
                              
     # labs(title = scale) +
-    # ylim(-0.56, 0.7) +
+    ylim(-0.7, 0.8) +
   
     geom_errorbar(aes(ymin = mean - (sd / sqrt(n)), 
                       ymax = mean + (sd / sqrt(n))), 
                   width = 0.4) + 
-                
-    facet_grid(~ scale, 
-               labeller = as_labeller(scale_names)) +
     theme_apa(legend.pos = "top") +
+    facet_grid(~ scale,
+               labeller = as_labeller(scale_names)) +
+    
     xlab("Time point") +
     ylab("Standardised mean value (SD)")   
 
+
 plot_time_facet
 
-ggsave("plot_time_facet.jpg", plot=plot_time_facet, 
-       width=30, height=15, units="cm")
+ggsave("plot_time_facet_sign.png", plot=plot_time_facet, 
+        width=30, height=15, units="cm")
 ```
+
+
 

@@ -10,7 +10,8 @@ output: html_document
 ```{r data_packages, eval=T, echo=T, message=F}
 # load packages
 source("../../Scripts/functions_bpd_memo.R")
-packages <- c("tidyverse", "jtools", "reshape2", "ggpubr", 
+packages <- c("tidyverse", "jtools", "reshape2",
+              "ggpubr", "knitr",
               "afex", "emmeans", "Hmisc", "sjstats", 
               "multcomp" # for anova posthoc tests
               )
@@ -55,49 +56,68 @@ data_final_long_scales_viz_m_noMissing$panas_neg_scaled <- scale(data_final_long
 ```
 
 ```{r anova_baseline, include=TRUE}
-# BASELINE MODEL
+# NEGATIVELY worded evaluations
+anova_base_neg <- aov_car(panas_neg ~ Group_affect + Error(X),
+                          data=data_final_long_scales_viz_m_noMissing,
+                          observed = c("Group_affect", "time"),
+                          factorize = FALSE, type = "III", 
+                          anova_table = list(correction = "HF", es ="pes"))
+summary(anova_base_neg)
 
-# negatively worded items
-anova_baseline_neg <- aov_car(panas_neg ~ Group_affect * time + Error(X), data = data_final_long_scales_viz_m_noMissing, 
-        observed = c("Group_affect", "time"), 
-        factorize = F, anova_table = list(correction = "none", es ="pes"))
-anova_baseline_neg
-
-# check the means
-aggregate(panas_neg ~ Group_affect + time, data_final_long_scales_viz_m_noMissing, mean)
+# check contrasts
+emmeans(anova_base_neg, "Group_affect", contr = "pairwise") 
 
 
-# positively worded items
-aov_car(panas_pos ~ Group_affect * time + Error(X),
-        data = data_final_long_scales_viz_m_noMissing,
-        observed = c("Group_affect", "time"), 
-        factorize = F, anova_table = list(correction = "none", es ="pes"))
 
-lmer(panas_pos ~ Group_affect + (Group_affect | time),
-        data = data_final_long_scales_viz_m_noMissing)
+# POSITIVELY worded evaluations
+anova_base_pos <- aov_car(panas_pos ~ Group_affect + Error(X),
+                          data=data_final_long_scales_viz_m_noMissing,
+                          observed = c("Group_affect", "time"),
+                          factorize = FALSE, type = "III", 
+                          anova_table = list(correction = "HF", es ="pes"))
+summary(anova_base_pos)
 
-# check the means
-aggregate(panas_pos ~ Group_affect + time, data_final_long_scales_viz_m_noMissing, mean)
+# check contrasts
+emmeans(anova_base_pos, "Group_affect", contr = "pairwise") 
+
+
+
+# general impression
+anova_base_gen_impr <- aov_car(gen_impr ~ Group_affect + Error(X),
+                          data=data_final_long_scales_viz_m_noMissing,
+                          observed = c("Group_affect", "time"),
+                          factorize = FALSE, type = "III", 
+                          anova_table = list(correction = "HF", es ="pes"))
+summary(anova_base_gen_impr)
+
+# check contrasts
+emmeans(anova_base_gen_impr, "Group_affect", contr = "pairwise") 
 
 ```
 
 ```{r anova_allIn_H123, include=TRUE}
-# time (one out of 4 followup occasions) X Group affect (positive/neutral/negative) and PANAS Pos/Neg as dependent variable (taking 4 values measured at each followup occasion)
-anova_base_pos <- aov_car(panas_pos_scaled ~ Group_affect * time 
+anova_base_pos_pes <- aov_car(panas_pos_scaled ~ Group_affect * time 
                        + cesd_scaled + EXTR_scaled + gen_impr_scaled + BPD_scaled + Error(X), 
                         data=data_final_long_scales_viz_m_noMissing, 
                         observed = c("Group_affect", "time"),
                         factorize = FALSE, type = "III", 
-                       anova_table = list(correction = "none", es ="pes"))
-anova_base_pos
+                       anova_table = list(correction = "HF", es ="pes"))
+
+summary(anova_base_pos_pes)
+summary(anova_base_pos_epsilon)
+write.csv(round(as.data.frame(summary(anova_base_pos)), digits=3),
+                file="H123_anova_base_pos_table.csv")
+
 
 anova_base_neg <- aov_car(panas_neg_scaled ~ Group_affect * time 
                        + cesd_scaled + EXTR_scaled + gen_impr_scaled + BPD_scaled + Error(X), 
                         data=data_final_long_scales_viz_m_noMissing, 
                         observed = c("Group_affect", "time"),
                         factorize = FALSE, type = "III", 
-                       anova_table = list(correction = "none", es ="pes"))
-anova_base_neg 
+                       anova_table = list(correction = "HF", es ="pes"))
+summary(anova_base_neg)
+write.csv(round(as.data.frame(summary(anova_base_neg)), digits=3),
+          file="H123_anova_base_neg_table.csv")
 
 
 # check contrasts
@@ -105,7 +125,6 @@ emmeans(anova_base_pos, "Group_affect", contr = "pairwise")
 emmeans(anova_base_pos, "time", contr = "pairwise") 
 emmeans(anova_base_neg, "Group_affect", contr = "pairwise") 
 emmeans(anova_base_neg, "time", contr = "pairwise") 
-
 
 ```
 
@@ -117,69 +136,73 @@ rcorr(as.matrix(data_final_long_scales_viz_m_noMissing[, c("panas_pos", "panas_n
 
 ```
 
-```{r gen_impr_neg_H2.4, eval=T}
-anova_gen_impr_all <- aov(gen_impr ~ time,
-                      data=data_final_long_scales_viz_m_noMissing)
-summary(anova_gen_impr_all)
-eta_sq(anova_gen_impr_all, partial=TRUE)
 
-# per group 
 
-for (i in group_affect) {
-  print(paste(i))
-  anova_gen_impr_group <- aov(gen_impr_scaled ~ time,
-                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == i, ])
-  print(summary(anova_gen_impr_group))
-  print(eta_sq(anova_gen_impr_group))
-}
+```{r group_differences_for_plot_AND_H2.4_general_impression eval=T}
+# sphericity
+anova_gen_impr <- aov_ez("session", "gen_impr_scaled", between=c("Group_affect"), within = c("time"), 
+                              data=data_final_long_scales_viz_m_noMissing, 
+                anova_table = list(correction = "HF", es ="pes"))
+summary(anova_gen_impr)
 
-# posthoc test for the negative group
+# pes
+aov_car(gen_impr_scaled ~ time * Group_affect + Error(X), 
+        data=data_final_long_scales_viz_m_noMissing, 
+        anova_table = list(correction = "HF", es="pes"))
+
+# pairwise comparison
 summary(glht(aov(gen_impr_scaled ~ time,
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ]),
-             linfct = mcp(time = "Welsh")), test = adjusted(type = "fdr"))
+             linfct = mcp(time = "Tukey")), test = adjusted(type = "fdr"))
+
 
 ```
 
-```{r valence_neg_H2.5, eval=T}
-# with POSITIVELY worded evaluative words (PANAS Positive as dependent VA)
-anova_pos <-aov(panas_pos_scaled ~ time,
-                      data=data_final_long_scales_viz_m_noMissing)
-summary(anova_pos)
-eta_sq(anova_pos, partial=TRUE)
 
 
-# positive evaluations per group
-for (i in group_affect) {
-  print(paste(i))
-  anova <- aov(panas_pos_scaled ~ time,
-                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == i, ])
-  print(summary(anova))
-  print(eta_sq(anova, partial=TRUE))
-}
+```{r group_differences_for_plot_AND_H2.5_PANAS_pos_PANAS_neg eval=T}
+## PANAS negative
+# sphericity
+anova_gen_impr <- aov_ez("session", "panas_neg_scaled", between=c("Group_affect"), within = c("time"), 
+                              data=data_final_long_scales_viz_m_noMissing, 
+                anova_table = list(correction = "HF", es ="pes"))
+summary(anova_gen_impr)
 
-# posthoc test for the negative group
+# pes
+aov_car(panas_neg_scaled ~ time * Group_affect + Error(X), 
+        data=data_final_long_scales_viz_m_noMissing, 
+        anova_table = list(correction = "HF", es="pes"))
+
+# pairwise comparison
+summary(glht(aov(panas_neg_scaled ~ time,
+                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ]),
+             linfct = mcp(time = "Tukey")), test = adjusted(type = "fdr"))
+
+
+## PANAS positive
+# sphericity
+anova_gen_impr <- aov_ez("session", "panas_pos_scaled", between=c("Group_affect"), within = c("time"), 
+                              data=data_final_long_scales_viz_m_noMissing, 
+                anova_table = list(correction = "HF", es ="pes"))
+summary(anova_gen_impr)
+
+# pes
+aov_car(panas_pos_scaled ~ time * Group_affect + Error(X), 
+        data=data_final_long_scales_viz_m_noMissing, 
+        anova_table = list(correction = "HF", es="pes"))
+
+# pairwise comparison
 summary(glht(aov(panas_pos_scaled ~ time,
                       data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ]),
              linfct = mcp(time = "Tukey")), test = adjusted(type = "fdr"))
 
 
-# with NEGATIVELY worded evaluative words (PANAS Negative as dependent VA)
-anova_neg <- aov(panas_neg_scaled ~ time,
-                      data=data_final_long_scales_viz_m_noMissing)
-summary(anova_neg)
-eta_sq(anova_neg)
 
-# negative evaluations per group
-for (i in group_affect) {
-  print(paste(i))
-  anova <- aov(panas_neg_scaled ~ time,
-                      data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == i, ])
-  print(summary(anova))
-  print(eta_sq(anova, partial=T))
-}
+```
 
 
 
+```{r valence_neg_H2.5, eval=T}
 ## does BPD correlate with the level of change in PANAS/Pos the negative group? 
 # multi-level regression,, time x BPD with valence as dependent VA
 multi_level_regr <- lmer(panas_pos_scaled ~ BPD_scaled + time + (1 | session), 
