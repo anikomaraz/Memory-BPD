@@ -153,6 +153,7 @@ if (overwrite_data == TRUE) {
 ## load final data
 data_clean <- read.csv2("../../Data/data_clean_180906.csv", stringsAsFactors = F)
 
+
 ```
 
 
@@ -191,9 +192,15 @@ N5_screenpostive <- length(data_clean$session)
 # check for group difference among those who passed the screening between those who completed P1 and those who did not 
 BPD_scrPos_compP1_vs_notCompP1 <- t.test(data_clean$BPD_screen ~ !is.na(data_clean$panas_1.t1), alternative= "two.sided")
 
+## participants who completed T1 with missing data
+sum(is.na(data_clean$panas_1.t1))
+
 ## participants with no missing data on PANAS at t1
 data_clean <- data_clean[!is.na(data_clean$panas_1.t1),]
 N6_Part1_compl <- length(data_clean$session)
+
+## check t1 participation per group
+colSums(table(data_clean$session, data_clean$Group.t1))
 
 ## Group 2 unfortunately received the wrong link to the video (same as for Group 1), therefore they have to be excluded from data analysis
 N7_Group2_excluded <- sum(data_clean$Group.t1 == "2")
@@ -202,13 +209,17 @@ N8_Part1_compl_noGr2 <- length(data_clean$session)
 
 ## participants who completed Part 2
 N9_Part2_compl <- sum(!is.na(data_clean$gen_impr_test.t2))
+colSums(table(data_clean$gen_impr_test.t2, data_clean$Group.t1))
 
 ## participants who completed Part 3
 N10_Part3_compl <- sum(!is.na(data_clean$gen_impr_test.t3))
+colSums(table(data_clean$gen_impr_test.t3, data_clean$Group.t1))
 
 ## participants who completed Part 4, meaning they have full data (t1-t4)
 data_clean$session_full <- !is.na(data_clean[,"panas_1.t4"])
 N11_Part4_compl_full <- sum(data_clean$session_full)
+P4_full <- data_clean[data_clean$session_full, ]
+colSums(table(P4_full$session_full, P4_full$Group.t1), na.rm = T)
 
 # check for group difference among those who completed t4 vs. those who only did t1
 BPD__compP1_vs_compP4 <- t.test(data_clean$BPD_screen ~ data_clean$session_full, alternative= "two.sided")
