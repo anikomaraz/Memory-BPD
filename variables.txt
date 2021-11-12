@@ -1,6 +1,5 @@
 # final data file
 read.csv2("../../Data/data_final_long_scales_181121.csv") # raw data
-read.csv2("../../Data/data_final_long_scales_viz_m.csv")  # scales calculated
 
 
 # variables measured only once
