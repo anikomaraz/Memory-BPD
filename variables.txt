@@ -1,0 +1,15 @@
+# final data file
+read.csv2("../../Data/data_final_long_scales_181121.csv") # raw data
+read.csv2("../../Data/data_final_long_scales_viz_m.csv")  # scales calculated
+
+
+# Part 1 variables
+  "time"         
+  "panas_pos"    
+  "panas_neg"    
+  "cesd_r"  # meaning it's the reversed scale
+  "gen_impr"    # general impression
+  "Group_affect" # pre-determined groups for video clips: positive, negative neutral
+  "EXTR"      # extremity
+  "BPD"
+
