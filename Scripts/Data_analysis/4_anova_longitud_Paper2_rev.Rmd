@@ -18,7 +18,7 @@ packages <- c("tidyverse", "jtools", "reshape2",
 load_my_packages(packages)
 
 # user-set options
-overwrite = TRUE # should data/plots/tables be saved/overwritten?
+overwrite = FALSE # should data/plots/tables be saved/overwritten?
 
 
 # load data
@@ -158,7 +158,15 @@ summary(glht(aov(gen_impr_scaled ~ time,
 
 ```
 
+```{r valence_neg_H2.4, eval=T}
+## does BPD correlate with the level of change in PANAS/Pos the negative group? 
+# multi-level regression,, time x BPD with valence as dependent VA
+multi_level_regr_genImpr <- lmer(gen_impr ~ BPD + time + (1 | session), 
+                         data=data_final_long_scales_viz_m_noMissing[data_final_long_scales_viz_m_noMissing$Group_affect == "negative", ])
 
+summary(multi_level_regr_genImpr)
+
+```
 
 ```{r group_differences_for_plot_AND_H2.5_PANAS_pos_PANAS_neg eval=T}
 ## PANAS negative
