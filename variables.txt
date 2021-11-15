@@ -1,14 +1,15 @@
 # final data file
-read.csv2("../../Data/data_final_long_scales_181121.csv") # raw data
+read.csv2("Data/data_final_long_scales_181121.csv") # raw data
 
 
 # variables measured only once
-  "time"         
-  "Group_affect" # pre-determined groups for video clips: positive, negative neutral
-  "EXTR"      # extremity
-  "BPD"
+"time"         
+"Group_affect" # pre-determined groups for video clips: positive, negative neutral
+"EXTR"      # extremity
+"BPD"
 
 # repeatedly measured variables: 
-"CESD.t1"     "CESD.t2"                      "CESD.t3"                      "CESD.t4"                   
-"PANAS_POS.t1"                 "PANAS_NEG.t1"  "PANAS_POS.t2"                 "PANAS_NEG.t2"                 "PANAS_POS.t3"                 "PANAS_NEG.t3"                 "PANAS_POS.t4"                "PANAS_NEG.t4"  
-"GEN_IMPR.t1"                  "GEN_IMPR.t2"   "GEN_IMPR.t3"                  "GEN_IMPR.t4"      
+"CESD.t1" "CESD.t2" "CESD.t3" "CESD.t4"   
+"PANAS_POS.t1" "PANAS_POS.t2" "PANAS_POS.t3" "PANAS_POS.t4"
+"PANAS_NEG.t1" "PANAS_NEG.t2" "PANAS_NEG.t3" "PANAS_NEG.t4" 
+"GEN_IMPR.t1" "GEN_IMPR.t2" "GEN_IMPR.t3" "GEN_IMPR.t4"      

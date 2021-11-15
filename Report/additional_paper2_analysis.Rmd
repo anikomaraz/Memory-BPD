@@ -1,0 +1,229 @@
+---
+title: BPD additional analysis and viz
+author: Tamas Nagy
+date: 11/12/2021
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+library(tidyverse)
+library(janitor)
+library(skimr)
+library(ggsignif)
+library(afex)
+
+theme_set(theme_light())
+```
+
+```{r}
+
+
+variable_names <-
+  tribble(~scale, ~name, 
+    "group_affect", "Video valence group",
+    "extr", "Extremity",
+    "bpd", "BPD trait",
+    "cesd", "Participant mood (negative)",
+    "gen_impr", "General impression of the video",
+    "panas_neg", "Negative evaluation of the character",
+    "panas_pos", "Positive evaluation of the character"
+  ) %>% 
+  mutate(name = fct_inorder(name))
+
+```
+
+
+```{r}
+bpd_raw <-read_csv2(here::here("Data/data_final_long_scales_181121.csv"))
+
+bpd_wide <-
+  bpd_raw %>% 
+  select(session,
+         Group_affect,
+         EXTR,
+         BPD,
+         CESD.t1, CESD.t2, CESD.t3, CESD.t4, 
+         PANAS_POS.t1, PANAS_POS.t2, PANAS_POS.t3, PANAS_POS.t4,
+         PANAS_NEG.t1, PANAS_NEG.t2, PANAS_NEG.t3, PANAS_NEG.t4,
+         GEN_IMPR.t1, GEN_IMPR.t2, GEN_IMPR.t3, GEN_IMPR.t4
+         ) %>% 
+  clean_names() %>% 
+  mutate(group_affect = str_to_title(group_affect),
+         bpd_group = cut_number(bpd, 
+                                n = 3, 
+                                labels = c("Low BPD trait",
+                                           "Medium BPD trait",
+                                           "High BPD trait")) %>% 
+                     fct_reorder(bpd))
+
+bpd_wide %>% 
+  select(bpd, bpd_group) %>% 
+  ggplot(aes(x = bpd_group, y = bpd)) +
+  stat_summary(fun.df = mean_se, geom = "errorbar") +
+  stat_summary(fun = mean, geom = "bar") +
+  expand_limits(y = 0)
+
+bpd_long <- 
+  bpd_wide %>% 
+  pivot_longer(cesd_t1:gen_impr_t4,
+               names_to = c("scale", "time"),
+               names_pattern = "(.*)_t(.)") %>% 
+  mutate(time = as.integer(time)) %>% 
+  left_join(variable_names, by = "scale")
+
+bpd_tidy <- 
+  bpd_wide %>% 
+  pivot_longer(cesd_t1:gen_impr_t4,
+               names_to = c(".value", "time"),
+               names_pattern = "(.*)_t(.)") %>% 
+  mutate(time = as.integer(time),
+         group_affect = fct_relevel(group_affect, "Neutral"))
+
+```
+
+# Recreate Figure 2
+
+```{r}
+
+fig2_sig <-
+  variable_names %>% 
+  slice(4:7) %>% 
+  left_join(
+    tribble(~scale, ~y, ~xmin, ~xmax, ~label,
+            "cesd", -.3, 1, 2, "*** ",
+            "cesd", -.4, 1, 3, " *** ",
+            "cesd", -.5, 1, 4, " ***",
+            "cesd", -.6, 2, 3, "*",
+            "cesd", -.7, 2, 4, "**",
+            "gen_impr", .5, 1, 2, "***",
+            "gen_impr", .6, 1, 3, " ***",
+            "gen_impr", .7, 1, 4, "*** ",
+            "panas_pos", -.3, 1, 2, "*** ",
+            "panas_pos", -.4, 1, 3, " ***",
+            "panas_pos", -.5, 1, 4, " *** ",
+            "panas_pos", -.6, 2, 3, "*",
+            "panas_pos", -.7, 2, 4, " * "),
+
+        by = "scale"
+  )
+
+bpd_long %>% 
+  group_by(scale) %>% 
+  mutate(value = scale(value) %>% as.numeric()) %>% 
+  ungroup() %>% 
+  ggplot() +
+  aes(x = time, y = value, color = group_affect) +
+  stat_summary(fun = mean, 
+               geom = "line", 
+               size = 1.2,
+               alpha = .8) +
+  stat_summary(fun = mean, 
+             geom = "point") +
+  stat_summary(fun.data = mean_se, 
+               geom = "errorbar", 
+               width = .3) +
+  facet_wrap(~name, nrow = 1) +
+  geom_signif(data = fig2_sig,
+              aes(xmin = xmin,
+                  xmax = xmax,
+                  y_position = y,
+                  annotations = label),
+              inherit.aes = FALSE, 
+              tip_length = 0, 
+              vjust = .5,
+              manual = TRUE,
+              alpha = .6, 
+            textsize = 3) +
+  labs(y = "Standarised mean value (SE)",
+       x = "Measurement",
+       color = "Video valence group") +
+  theme_light() +
+  theme(legend.position = "top")
+
+```
+
+# Recreate Table 2 as a figure
+
+```{r}
+
+table2_sig <-
+  variable_names %>% 
+  slice(5:7) %>% 
+  left_join(
+    tribble(~scale, ~y, ~xmin, ~xmax, ~label,
+            "gen_impr", .4, 1, 2, "p < .001",
+            "gen_impr", .6, 1, 3, "p = .021",
+            "gen_impr", .5, 2, 3, "p < .001 ",
+            "panas_neg", .7, 1, 2, "p < .001",
+            "panas_neg", .8, 1, 3, "p < .001 ",
+            "panas_neg", .6, 2, 3, " p < .001 ",
+            "panas_pos", .4, 1, 2, "p = .278",
+            "panas_pos", .6, 1, 3, "p < .001",
+            "panas_pos", .5, 2, 3, "p < .001 "
+            ),
+        by = "scale"
+  )
+
+bpd_long %>% 
+  filter(scale != "cesd", time == 1) %>% 
+  group_by(scale) %>% 
+  mutate(value = scale(value) %>% as.numeric()) %>% 
+  ungroup() %>% 
+  ggplot() +
+  aes(x = group_affect, y = value, fill = group_affect) +
+  stat_summary(fun = mean, 
+               geom = "col", 
+               alpha = .8, 
+               show.legend = FALSE) +
+  stat_summary(fun.df = mean_se,
+               geom = "errorbar",
+               width = .3,
+               alpha = .3) +
+  facet_wrap(~name) +
+  geom_signif(data = table2_sig,
+              aes(xmin = xmin,
+                  xmax = xmax,
+                  y_position = y,
+                  annotations = label),
+            inherit.aes = FALSE, 
+            tip_length = .005,
+            manual = TRUE,
+            alpha = .6, 
+            textsize = 3) +
+  labs(y = "Standardized mean value (SE)",
+       x = "Video valence group")
+```
+
+# Reviewer 2 request figure
+
+It would also be helpful to include a graph on the relationship between borderline characteristics and the extent of enhancement of negative recall bias. I believe that this is the primary finding in the study but it does not come out clearly to the reader. 
+
+```{r}
+
+bpd_long %>% 
+  filter(scale != "cesd") %>% 
+  group_by(scale) %>% 
+  mutate(value = scale(value) %>% as.numeric()) %>% 
+  ungroup() %>% 
+  ggplot() +
+  aes(x = time, y = value, color = bpd_group) +
+  stat_summary(fun = mean, 
+               geom = "line", 
+               size = 1.2,
+               alpha = .8) +
+  stat_summary(fun = mean, 
+               geom = "point", 
+               alpha = .8) +
+  stat_summary(fun.df = mean_se, 
+              geom = "errorbar",
+              width = .3,
+              alpha = .7) +
+  facet_grid(group_affect~name, scales = "free_y") +
+  labs(x = "Measurement",
+       y = "Standardised mean value (SE)") +
+  theme(legend.position = "top")
+
+
+```
+
