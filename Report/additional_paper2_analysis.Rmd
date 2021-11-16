@@ -1,5 +1,5 @@
 ---
-title: BPD additional analysis and viz
+title: BPD additional analysis and viz during REVISION
 author: Tamas Nagy
 date: 11/12/2021
 output: html_document
@@ -13,7 +13,7 @@ library(skimr)
 library(ggsignif)
 library(afex)
 
-theme_set(theme_light())
+theme_set(theme_apa())
 ```
 
 ```{r}
