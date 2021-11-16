@@ -12,8 +12,9 @@ library(janitor)
 library(skimr)
 library(ggsignif)
 library(afex)
+library(jtools)
 
-theme_set(theme_light())
+theme_set(theme_apa())
 ```
 
 ```{r}
@@ -54,15 +55,14 @@ bpd_wide <-
                                 n = 3, 
                                 labels = c("Low BPD trait",
                                            "Medium BPD trait",
-                                           "High BPD trait")) %>% 
-                     fct_reorder(bpd))
+                                           "High BPD trait"),
+                                ordered_result = TRUE))
 
 bpd_wide %>% 
-  select(bpd, bpd_group) %>% 
-  ggplot(aes(x = bpd_group, y = bpd)) +
-  stat_summary(fun.df = mean_se, geom = "errorbar") +
-  stat_summary(fun = mean, geom = "bar") +
-  expand_limits(y = 0)
+  ggplot() +
+  aes(x = bpd, fill = bpd_group) +
+  geom_histogram(alpha = .7, binwidth = 1) +
+  labs(title = "BPD score cut into 3 paproximately equivalent sized groups")
 
 bpd_long <- 
   bpd_wide %>% 
@@ -85,7 +85,7 @@ bpd_tidy <-
 # Recreate Figure 2
 
 ```{r}
-
+#TODO: add exact p values instead of *s
 fig2_sig <-
   variable_names %>% 
   slice(4:7) %>% 
@@ -210,19 +210,23 @@ bpd_long %>%
   aes(x = time, y = value, color = bpd_group) +
   stat_summary(fun = mean, 
                geom = "line", 
-               size = 1.2,
-               alpha = .8) +
+               size = 1.3,
+               alpha = .7) +
   stat_summary(fun = mean, 
                geom = "point", 
-               alpha = .8) +
-  stat_summary(fun.df = mean_se, 
+               size = 3,
+               alpha = .7) +
+  stat_summary(fun.data = mean_se, 
               geom = "errorbar",
-              width = .3,
+              width = .1,
               alpha = .7) +
-  facet_grid(group_affect~name, scales = "free_y") +
+  facet_grid(group_affect~name, 
+             scales = "free_y") +
   labs(x = "Measurement",
        y = "Standardised mean value (SE)") +
-  theme(legend.position = "top")
+  theme(legend.position = "top", 
+        # panel.grid = element_blank()
+        )
 
 
 ```
