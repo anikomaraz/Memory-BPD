@@ -13,6 +13,8 @@ library(skimr)
 library(ggsignif)
 library(afex)
 library(jtools)
+library(lmerTest)
+library(sjPlot)
 
 theme_set(theme_apa())
 ```
@@ -56,7 +58,8 @@ bpd_wide <-
                                 labels = c("Low BPD trait",
                                            "Medium BPD trait",
                                            "High BPD trait"),
-                                ordered_result = TRUE))
+                                ordered_result = TRUE)
+         )
 
 bpd_wide %>% 
   ggplot() +
@@ -81,6 +84,31 @@ bpd_tidy <-
          group_affect = fct_relevel(group_affect, "Neutral"))
 
 ```
+
+# Create descriptive table
+```{r}
+
+new_hist <- function(x){
+  inline_hist(x, n_bins = 10)
+}
+
+my_skim <- skim_with(numeric = sfl(hist = new_hist))
+
+bpd_tidy %>% 
+  my_skim(extr:bpd, cesd:gen_impr) %>% 
+  left_join(variable_names, by = c("skim_variable" = "scale")) %>% 
+  select(Variable = name,
+         Mean = numeric.mean,
+         SD = numeric.sd,
+         Min = numeric.p0,
+         Max = numeric.p100,
+         Distribution = numeric.hist) %>% 
+  performance::print_html() %>% 
+  gt::tab_options(table_body.hlines.width = 0)
+  
+
+```
+
 
 # Recreate Figure 2
 
@@ -176,7 +204,7 @@ bpd_long %>%
                geom = "col", 
                alpha = .8, 
                show.legend = FALSE) +
-  stat_summary(fun.df = mean_se,
+  stat_summary(fun.data = mean_se,
                geom = "errorbar",
                width = .3,
                alpha = .3) +
@@ -186,21 +214,21 @@ bpd_long %>%
                   xmax = xmax,
                   y_position = y,
                   annotations = label),
-            inherit.aes = FALSE, 
-            tip_length = .005,
-            manual = TRUE,
-            alpha = .6, 
-            textsize = 3) +
+              inherit.aes = FALSE, 
+              tip_length = .005,
+              manual = TRUE,
+              alpha = .6, 
+              textsize = 3) +
   labs(y = "Standardized mean value (SE)",
        x = "Video valence group")
 ```
 
-# Reviewer 2 request figure
+# Reviewer 2 requested figure
 
 It would also be helpful to include a graph on the relationship between borderline characteristics and the extent of enhancement of negative recall bias. I believe that this is the primary finding in the study but it does not come out clearly to the reader. 
 
 ```{r}
-
+# H4-5
 bpd_long %>% 
   filter(scale != "cesd") %>% 
   group_by(scale) %>% 
@@ -224,9 +252,43 @@ bpd_long %>%
              scales = "free_y") +
   labs(x = "Measurement",
        y = "Standardised mean value (SE)") +
-  theme(legend.position = "top", 
-        # panel.grid = element_blank()
+  theme(legend.position = "top"
         )
+
+```
+
+
+# Rerun ANOVA with interaction terms
+```{r}
+# H4-5
+mod_neg <- 
+  lmer(scale(panas_neg) ~ group_affect * time * scale(bpd) + (1|session),
+      data = bpd_tidy)
+
+mod_pos <- 
+  lmer(scale(panas_pos) ~ group_affect * time * scale(bpd) + (1|session),
+       data = bpd_tidy)
+
+mod_gen <-
+  lmer(scale(gen_impr) ~ group_affect * time * scale(bpd) + (1|session),
+       data = bpd_tidy)
+
+anova(mod_neg)
+
+
+tab_model(mod_gen, mod_neg, mod_pos,
+          show.se = TRUE,
+          show.ci = FALSE,
+          show.stat = TRUE,
+          dv.labels = variable_names$name[5:7])
+
+```
+
+```{r}
+# TODO: H6: rerun all models as lmers
+# Rework Table 4 as std betas 
+# Use FDR correction!
+
 
 
 ```
