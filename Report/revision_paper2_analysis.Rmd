@@ -15,6 +15,8 @@ library(afex)
 library(jtools)
 library(lmerTest)
 library(sjPlot)
+library(broom)
+library(gt)
 
 theme_set(theme_apa())
 ```
@@ -104,7 +106,7 @@ bpd_tidy %>%
          Max = numeric.p100,
          Distribution = numeric.hist) %>% 
   performance::print_html() %>% 
-  gt::tab_options(table_body.hlines.width = 0)
+  tab_options(table_body.hlines.width = 0)
   
 
 ```
@@ -252,6 +254,7 @@ bpd_long %>%
              scales = "free_y") +
   labs(x = "Measurement",
        y = "Standardised mean value (SE)") +
+  scale_color_brewer(palette = "YlOrRd") +
   theme(legend.position = "top"
         )
 
@@ -273,8 +276,9 @@ mod_gen <-
   lmer(scale(gen_impr) ~ group_affect * time * scale(bpd) + (1|session),
        data = bpd_tidy)
 
+anova(mod_gen)
 anova(mod_neg)
-
+anova(mod_pos)
 
 tab_model(mod_gen, mod_neg, mod_pos,
           show.se = TRUE,
@@ -284,11 +288,64 @@ tab_model(mod_gen, mod_neg, mod_pos,
 
 ```
 
-```{r}
-# TODO: H6: rerun all models as lmers
-# Rework Table 4 as std betas 
-# Use FDR correction!
+# Revise Table 4 as std.betas
 
+```{r}
+# Create models
+h4_models <-
+  bpd_tidy %>% 
+  pivot_longer(c(panas_pos, panas_neg), 
+               names_to = "scale") %>% 
+  group_by(group_affect, time, scale) %>% 
+  nest() %>% 
+  mutate(model = map(data, 
+                     ~lm(scale(value) ~ scale(bpd) + scale(cesd) +
+                         scale(gen_impr) + scale(extr), 
+                         data = .x) %>% 
+                     tidy())) %>% 
+  select(-data)
+
+# Extract estimates and corrected p.values
+h4_values <-
+  h4_models %>% 
+  unnest(model) %>% 
+  mutate(p.value = p.adjust(p.value, method = "fdr"),
+         estimate = if_else(p.value <= .05, estimate, NA_real_),
+         evaluation = scale,
+         scale = str_remove_all(term, "scale\\(|\\)")) %>%
+  filter(term != "(Intercept)") %>% 
+  ungroup() %>% 
+  left_join(variable_names, by = "scale") %>%
+  select(group_affect, evaluation, predictor = name,
+         time, estimate, p.value)
+  
+# Create table
+h4_values %>% 
+  select(-p.value) %>% 
+  mutate(group_affect = fct_relevel(group_affect, "Positive")) %>% 
+  arrange(group_affect, evaluation, time) %>% 
+  pivot_wider(values_from = estimate,
+              names_from = c(evaluation, time)) %>% 
+  gt(rowname_col = "group_affect") %>% 
+  tab_stubhead(label = "Video valence group") %>%
+  fmt_missing(3:10, missing_text = "") %>% 
+  fmt_number(3:10, decimals = 2) %>% 
+  cols_label(predictor = "Predictor",
+             panas_neg_1 = "T1",
+             panas_neg_2 = "T2",
+             panas_neg_3 = "T3",
+             panas_neg_4 = "T4",
+             panas_pos_1 = "T1",
+             panas_pos_2 = "T2",
+             panas_pos_3 = "T3",
+             panas_pos_4 = "T4") %>%
+  tab_spanner(label = "Negative evaluation of the character",
+              columns = 3:6) %>% 
+  tab_spanner(label = "Positive evaluation of the character",
+              columns = 7:10) %>% 
+  cols_align(columns = predictor, align = "left") %>%
+  tab_options(table_body.hlines.width = 0)
+  
 
 
 ```
