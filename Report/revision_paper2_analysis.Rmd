@@ -18,7 +18,7 @@ library(sjPlot)
 library(broom)
 library(gt)
 
-theme_set(theme_apa())
+theme_set(theme_apa(legend.use.title = TRUE))
 ```
 
 ```{r}
@@ -345,8 +345,29 @@ h4_values %>%
               columns = 7:10) %>% 
   cols_align(columns = predictor, align = "left") %>%
   tab_options(table_body.hlines.width = 0)
-  
+```
 
+## The same as a figure
+```{r fig.width=9}
+# Try a tile plot
+h4_values %>% 
+  select(-p.value) %>% 
+  mutate(group_affect = fct_relevel(group_affect, "Positive"),
+         predictor = fct_inorder(as.character(predictor))) %>% 
+  arrange(group_affect, evaluation, time) %>% 
+  left_join(variable_names, by = c("evaluation" = "scale")) %>% 
+  ggplot() +
+  aes(y = fct_rev(predictor), 
+      x = time, 
+      fill = estimate, 
+      label = round(estimate, 2)) +
+  geom_tile() +
+  geom_text() +
+  facet_grid(group_affect ~ name) +
+  scale_fill_gradient2(low = "blue", high = "red", na.value = "white") +
+  labs(x = "Measurement", 
+       y = NULL,
+       fill = "Std.beta")
 
 ```
 
