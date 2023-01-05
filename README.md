@@ -1,24 +1,29 @@
-# Memory-and-BPD
-This is a scientific project on memory functions in borderline personality disorder. We were interested in which factors influence emotional recall immediately after seeing the stimulus and 2-4-6 days thereafter.
+# Memory and the borderline personality trait
+What do you think determines what you remember from a movie? Or from an everyday conversation? Do you think your recall differs if you talk to a sympathetic versus a non-sympathetic person? And how do these factors change for people with a high borderline personality trait, that is those who are emotionally unstable? 
 
-Following a data collection of MTurkers, 3 papers were created. 
+We aimed to answer this question with an exciting project using advanced, well thought-out methodology. The findings are published in 3 separate peer-reviewed scientific papers, including one in the methodological journal of Nature :sunglasses:  
 
-Paper 1 analyses data from the baseline data collection. We are interested in which factors influence emotional memory formation in people who are high on the borderline personality disorder trait. 
-The study was preregistered prior to data collection at: https://osf.io/btkez
-All materials, data and the data analysis scripts are available on: https://osf.io/nuqy8
-Data are also available under https://doi.org/10.6084/m9.figshare.13032731.v1
-The final published manuscript: https://onlinelibrary.wiley.com/doi/full/10.1002/acp.3764?af=R
-The final manuscript for non-commercial use only: https://docs.google.com/document/d/1uz7zaHaP7R10OxCImNhLiX4Feb04-BZxLpMz0KDDjbg/edit?usp=sharing
+The project was supported by the *Alexander von Humboldt Fellowship* (recipent: Aniko Maraz), and carried out at the Humboldt University of Berlin in collaboration with the Eötvös Loránd Science University in Hungary. 
 
-Paper 2 contains the analysis of all 4 waves of data collection (each about 2 days apart). 
-Preregistration:  https://osf.io/5249u
-All materials, data and the data analysis scripts are available on: https://osf.io/nuqy8
-The MS is currently under review. 
-The final manuscript for personal use only can be viewed under: https://drive.google.com/file/d/1IwdKWZVlwiSIMVgMvAQ9QOv8P62AOqIh/view?usp=sharing
+## General methodology
+Participants with high-trait borderline personality disorder (BPD) watched a randomly selected positive, negative, or neutral character in a video clip (stimulus) and were asked to recall the content immediately, then 2, 4, and 6 days later. We obtained a final sample of N = 558 (average age: 33 years, 65% female) using data collection from MTurk and many super-well-thought-out cheat-prevention methods including live location-based filtering via API calls and standard + not-so-standard attention check items peri and post data collection :fire:.  
 
-Paper 3 is the text mining (sentiment) analyis of the free-text answers in all 4 waves of the data collection. 
-Preregistration: https://osf.io/uefsh
-The analysis script was mostly written by Tamás Nagy (nthun)
-The MS is currently being written. 
+To comply with state-of-the-art scientific standards we preregistered the study before collecting any data: https://osf.io/5249u (Paper 1) and https://osf.io/btkez (Paper 2).
+The project is fully open: all materials, data and the data analysis scripts are available on: https://osf.io/nuqy8
+
+## Paper 1
+
+The [article published in Scientific Reports](https://www.nature.com/articles/s41598-022-07358-2) summarises findings from the repeated-measure (follow-up) design. In a nutshell we found that people with a high-trait borderline personality trait tend to remember negative stimuli more negatively over time (unlike neutral or positive stimuli), and this effect is mostly related to their general impression of the stimuli.
+
+![bpd_memo.webp](bpd_memo.webp)
+
+## Paper 2
+Paper 2 analyses data from the baseline data collection and was [published in Applied Cognitive Psychology](https://onlinelibrary.wiley.com/doi/full/10.1002/acp.3764). We are interested in which factors influence emotional memory formation in people who are high on the borderline personality disorder trait. We found that different factors influence the recall of emotional stimuli, depending on the valence of the stimuli and the valence of the rating scale in persons with strong borderline tendencies. If you know how to interpret Structural Equation Modeling findings, then have a look at our model, but if you are unsure, read our article :wink:
+
+
+![bpd_memo2_baseline.png](bpd_memo2_baseline.png)
+
+## Paper 3
+Paper 3 is the text mining (sentiment) analyis of the free-text answers in all 4 waves of the data collection. This manuscript is currently in writing, but you can find out more about our plans of analysis in the preregistration:  https://osf.io/uefsh
 
 
