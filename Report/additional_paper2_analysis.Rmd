@@ -13,7 +13,7 @@ library(skimr)
 library(ggsignif)
 library(afex)
 
-theme_set(theme_apa())
+theme_set(theme_light())
 ```
 
 ```{r}
@@ -36,7 +36,7 @@ variable_names <-
 
 ```{r}
 bpd_raw <-read_csv2(here::here("Data/data_final_long_scales_181121.csv"))
-
+library(tidyverse)
 bpd_wide <-
   bpd_raw %>% 
   select(session,

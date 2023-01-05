@@ -228,12 +228,14 @@ intervals
 
 
 ```{r describe_scales}
-scales <- c("BPD_screen", "CESD.t1", "CESD.t2", "CESD.t3", "CESD.t4", 
+scales <- c("BPD_screen", 
+            "CESD.t1", "CESD.t2", "CESD.t3", "CESD.t4", 
             "PANAS_POS.t1", "PANAS_POS.t2", "PANAS_POS.t3", "PANAS_POS.t4", 
             "PANAS_NEG.t1", "PANAS_NEG.t2", "PANAS_NEG.t3", "PANAS_NEG.t4",
             "PANAS.t1", "PANAS.t2", "PANAS.t3", "PANAS.t4",
             "IPIP_openness", "IPIP_conscientiousness", "IPIP_extraversion", "IPIP_agreeableness", "IPIP_neuroticism", 
-            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs")
+            "BPD", "BPD_stress", "BPD_alien", "BPD_control", "BPD_aggression", "BPD_abs", 
+            "GEN_IMPR.t1", "GEN_IMPR.t2", "GEN_IMPR.t3", "GEN_IMPR.t4")
 data_scales <- data_final_long[, scales]    
 
 # calculate descriptive statistics for the scales
@@ -255,9 +257,7 @@ print(round(descriptive_scales, 2))
 length(data_final_long$session)
 
 # save data
-write.csv2(data_final_long, file="../../Data/data_final_long_scales_181121.csv")
-
-
+write.csv2(data_final_long, file = "../../Data/data_final_long_scales_181121.csv")
 
 ```
 

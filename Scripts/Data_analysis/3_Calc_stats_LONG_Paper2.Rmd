@@ -53,6 +53,8 @@ data_final_long_scales_viz_m <- list(data_viz_panas_pos_m, data_viz_panas_neg_m,
                                      data_viz_gen_impr_m, data_viz_std) %>% 
                                 reduce(full_join)
 
+check_gen_impr <- data_final_long_scales_viz_m[, c("time", "gen_impr", "Group_affect")]
+means_gen_impr <- aggregate(check_gen_impr[, "gen_impr"], list(check_gen_impr$time, check_gen_impr$Group_affect), mean)
 
 ```
 
