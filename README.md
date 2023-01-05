@@ -1,5 +1,5 @@
 # Memory and the borderline personality trait
-What do you think determines what you remember from a movie? Or from an everyday conversation? Do you think your recall differs if you talk to a sympathetic versus a non-sympathetic person? And how do these factors change for people with a high borderline personality trait, that is those who are emotionally unstable? 
+What do you think determines what you remember from a movie? Or from an everyday conversation? Do you think your recall differs if you talk to a sympathetic versus a non-sympathetic person? And how do these factors change for people with a high borderline personality trait, that is those who tend to be emotionally unstable in the first place? 
 
 We aimed to answer this question with an exciting project using advanced, well thought-out methodology. The findings are published in 3 separate peer-reviewed scientific papers, including one in the methodological journal of Nature :sunglasses:  
 
