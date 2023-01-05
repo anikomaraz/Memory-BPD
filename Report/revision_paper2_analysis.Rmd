@@ -12,8 +12,13 @@ library(janitor)
 library(skimr)
 library(ggsignif)
 library(afex)
+library(jtools)
+library(lmerTest)
+library(sjPlot)
+library(broom)
+library(gt)
 
-theme_set(theme_light())
+theme_set(theme_apa(legend.use.title = TRUE))
 ```
 
 ```{r}
@@ -54,15 +59,15 @@ bpd_wide <-
                                 n = 3, 
                                 labels = c("Low BPD trait",
                                            "Medium BPD trait",
-                                           "High BPD trait")) %>% 
-                     fct_reorder(bpd))
+                                           "High BPD trait"),
+                                ordered_result = TRUE)
+         )
 
 bpd_wide %>% 
-  select(bpd, bpd_group) %>% 
-  ggplot(aes(x = bpd_group, y = bpd)) +
-  stat_summary(fun.df = mean_se, geom = "errorbar") +
-  stat_summary(fun = mean, geom = "bar") +
-  expand_limits(y = 0)
+  ggplot() +
+  aes(x = bpd, fill = bpd_group) +
+  geom_histogram(alpha = .7, binwidth = 1) +
+  labs(title = "BPD score cut into 3 paproximately equivalent sized groups")
 
 bpd_long <- 
   bpd_wide %>% 
@@ -82,10 +87,35 @@ bpd_tidy <-
 
 ```
 
+# Create descriptive table
+```{r}
+
+new_hist <- function(x){
+  inline_hist(x, n_bins = 10)
+}
+
+my_skim <- skim_with(numeric = sfl(hist = new_hist))
+
+bpd_tidy %>% 
+  my_skim(extr:bpd, cesd:gen_impr) %>% 
+  left_join(variable_names, by = c("skim_variable" = "scale")) %>% 
+  select(Variable = name,
+         Mean = numeric.mean,
+         SD = numeric.sd,
+         Min = numeric.p0,
+         Max = numeric.p100,
+         Distribution = numeric.hist) %>% 
+  performance::print_html() %>% 
+  tab_options(table_body.hlines.width = 0)
+  
+
+```
+
+
 # Recreate Figure 2
 
 ```{r}
-
+#TODO: add exact p values instead of *s
 fig2_sig <-
   variable_names %>% 
   slice(4:7) %>% 
@@ -176,7 +206,7 @@ bpd_long %>%
                geom = "col", 
                alpha = .8, 
                show.legend = FALSE) +
-  stat_summary(fun.df = mean_se,
+  stat_summary(fun.data = mean_se,
                geom = "errorbar",
                width = .3,
                alpha = .3) +
@@ -186,21 +216,21 @@ bpd_long %>%
                   xmax = xmax,
                   y_position = y,
                   annotations = label),
-            inherit.aes = FALSE, 
-            tip_length = .005,
-            manual = TRUE,
-            alpha = .6, 
-            textsize = 3) +
+              inherit.aes = FALSE, 
+              tip_length = .005,
+              manual = TRUE,
+              alpha = .6, 
+              textsize = 3) +
   labs(y = "Standardized mean value (SE)",
        x = "Video valence group")
 ```
 
-# Reviewer 2 request figure
+# Reviewer 2 requested figure
 
 It would also be helpful to include a graph on the relationship between borderline characteristics and the extent of enhancement of negative recall bias. I believe that this is the primary finding in the study but it does not come out clearly to the reader. 
 
 ```{r}
-
+# H4-5
 bpd_long %>% 
   filter(scale != "cesd") %>% 
   group_by(scale) %>% 
@@ -210,20 +240,134 @@ bpd_long %>%
   aes(x = time, y = value, color = bpd_group) +
   stat_summary(fun = mean, 
                geom = "line", 
-               size = 1.2,
-               alpha = .8) +
+               size = 1.3,
+               alpha = .7) +
   stat_summary(fun = mean, 
                geom = "point", 
-               alpha = .8) +
-  stat_summary(fun.df = mean_se, 
+               size = 3,
+               alpha = .7) +
+  stat_summary(fun.data = mean_se, 
               geom = "errorbar",
-              width = .3,
+              width = .1,
               alpha = .7) +
-  facet_grid(group_affect~name, scales = "free_y") +
+  facet_grid(group_affect~name, 
+             scales = "free_y") +
   labs(x = "Measurement",
        y = "Standardised mean value (SE)") +
-  theme(legend.position = "top")
+  scale_color_brewer(palette = "YlOrRd") +
+  theme(legend.position = "top"
+        )
 
+```
+
+
+# Rerun ANOVA with interaction terms
+```{r}
+# H4-5
+mod_neg <- 
+  lmer(scale(panas_neg) ~ group_affect * time * scale(bpd) + (1|session),
+      data = bpd_tidy)
+
+mod_pos <- 
+  lmer(scale(panas_pos) ~ group_affect * time * scale(bpd) + (1|session),
+       data = bpd_tidy)
+
+mod_gen <-
+  lmer(scale(gen_impr) ~ group_affect * time * scale(bpd) + (1|session),
+       data = bpd_tidy)
+
+anova(mod_gen)
+anova(mod_neg)
+anova(mod_pos)
+
+tab_model(mod_gen, mod_neg, mod_pos,
+          show.se = TRUE,
+          show.ci = FALSE,
+          show.stat = TRUE,
+          dv.labels = variable_names$name[5:7])
+
+```
+
+# Revise Table 4 as std.betas
+
+```{r}
+# Create models
+h4_models <-
+  bpd_tidy %>% 
+  pivot_longer(c(panas_pos, panas_neg), 
+               names_to = "scale") %>% 
+  group_by(group_affect, time, scale) %>% 
+  nest() %>% 
+  mutate(model = map(data, 
+                     ~lm(scale(value) ~ scale(bpd) + scale(cesd) +
+                         scale(gen_impr) + scale(extr), 
+                         data = .x) %>% 
+                     tidy())) %>% 
+  select(-data)
+
+# Extract estimates and corrected p.values
+h4_values <-
+  h4_models %>% 
+  unnest(model) %>% 
+  mutate(p.value = p.adjust(p.value, method = "fdr"),
+         estimate = if_else(p.value <= .05, estimate, NA_real_),
+         evaluation = scale,
+         scale = str_remove_all(term, "scale\\(|\\)")) %>%
+  filter(term != "(Intercept)") %>% 
+  ungroup() %>% 
+  left_join(variable_names, by = "scale") %>%
+  select(group_affect, evaluation, predictor = name,
+         time, estimate, p.value)
+  
+# Create table
+h4_values %>% 
+  select(-p.value) %>% 
+  mutate(group_affect = fct_relevel(group_affect, "Positive")) %>% 
+  arrange(group_affect, evaluation, time) %>% 
+  pivot_wider(values_from = estimate,
+              names_from = c(evaluation, time)) %>% 
+  gt(rowname_col = "group_affect") %>% 
+  tab_stubhead(label = "Video valence group") %>%
+  fmt_missing(3:10, missing_text = "") %>% 
+  fmt_number(3:10, decimals = 2) %>% 
+  cols_label(predictor = "Predictor",
+             panas_neg_1 = "T1",
+             panas_neg_2 = "T2",
+             panas_neg_3 = "T3",
+             panas_neg_4 = "T4",
+             panas_pos_1 = "T1",
+             panas_pos_2 = "T2",
+             panas_pos_3 = "T3",
+             panas_pos_4 = "T4") %>%
+  tab_spanner(label = "Negative evaluation of the character",
+              columns = 3:6) %>% 
+  tab_spanner(label = "Positive evaluation of the character",
+              columns = 7:10) %>% 
+  cols_align(columns = predictor, align = "left") %>%
+  tab_options(table_body.hlines.width = 0)
+```
+
+## The same as a figure
+```{r fig.width=9}
+# Try a tile plot
+h4_values %>% 
+  select(-p.value) %>% 
+  mutate(group_affect = fct_relevel(group_affect, "Positive"),
+         predictor = fct_inorder(as.character(predictor))) %>% 
+  arrange(group_affect, evaluation, time) %>% 
+  left_join(variable_names, by = c("evaluation" = "scale")) %>% 
+  ggplot() +
+  aes(y = fct_rev(predictor), 
+      x = time, 
+      fill = estimate, 
+      label = round(estimate, 2)) +
+  geom_tile() +
+  geom_text() +
+  facet_grid(group_affect ~ name) +
+  scale_fill_gradient2(low = "blue", high = "red", na.value = "white") +
+  labs(x = "Measurement", 
+       y = NULL,
+       fill = "Std.beta")
 
 ```
 

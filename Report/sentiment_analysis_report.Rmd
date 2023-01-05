@@ -90,7 +90,7 @@ afinn_df <-
     group_by(session, group, time) %>% 
     # Get the summarised sentiment and the number of words in the answer
     summarise(answer_length = first(answer_length),
-              sum_senti = sum(score, na.rm = TRUE),
+              sum_senti = sum(value, na.rm = TRUE),
               rel_senti = sum_senti/answer_length) %>% 
     ungroup() %>% 
     left_join(groups, by = "group") %>% 
